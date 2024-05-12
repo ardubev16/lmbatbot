@@ -61,6 +61,12 @@ async def uni_cmd(db_helper: DbHelper, update: Update, context: ContextTypes.DEF
     await update.effective_chat.send_message(text, protect_content=True, parse_mode=constants.ParseMode.HTML)
 
 
+@with_db
+async def unireset_cmd(db_helper: DbHelper, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    deleted = db_helper.delete_student_infos(update.effective_chat.id)
+    await update.effective_chat.send_message(f"{deleted} records have been deleted!")
+
+
 async def uniset_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
     await update.effective_chat.send_message(
         """\
@@ -112,6 +118,7 @@ if you want to cancel the operation, send /cancel""",
 
 def handlers() -> list[TypedBaseHandler]:
     uni_handler = CommandHandler("uni", uni_cmd)
+    unireset_handler = CommandHandler("unireset", unireset_cmd)
     uniset_handler = ConversationHandler(
         entry_points=[CommandHandler("uniset", uniset_cmd)],
         states={
@@ -126,4 +133,4 @@ def handlers() -> list[TypedBaseHandler]:
         fallbacks=[CommandHandler("cancel", cancel_upload)],
     )
 
-    return [uni_handler, uniset_handler]
+    return [uni_handler, unireset_handler, uniset_handler]

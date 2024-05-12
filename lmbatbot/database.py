@@ -169,6 +169,11 @@ CREATE TABLE IF NOT EXISTS student_info
 
         return StudentInfo(student_id, name=student_info[0], surname=student_info[1], email=student_info[2])
 
+    def delete_student_infos(self, chat_id: int) -> int:
+        deleted = self.conn.execute("DELETE FROM student_info WHERE chat_id = ?", (chat_id,)).rowcount
+        self.conn.commit()
+        return deleted
+
 
 def init_db(db_path: str) -> None:
     global _db
