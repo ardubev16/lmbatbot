@@ -5,8 +5,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY data .
+COPY data ./data
 COPY main.py .
 COPY lmbatbot ./lmbatbot
 
-CMD [ "python", "main.py" ]
+CMD [ "python3", "main.py" ]

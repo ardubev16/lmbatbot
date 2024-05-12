@@ -32,10 +32,7 @@ async def lt(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 def handlers() -> list[TypedBaseHandler]:
-    # Stickers
     handlers: list[TypedBaseHandler] = [CommandHandler(key, stickers) for key in get_sticker_ids()]
-
-    # Stupid
     handlers.append(CommandHandler("lt", lt))
 
     return handlers
