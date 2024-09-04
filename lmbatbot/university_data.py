@@ -37,7 +37,7 @@ def _handle_student_id(db_helper: DbHelper, chat_id: int, student_id: int) -> st
 
 
 def _handle_name(db_helper: DbHelper, chat_id: int, name: str) -> str:
-    students = db_helper.get_student_by_name(chat_id, name)
+    students = db_helper.get_student_by_name(chat_id, name.lower())
     if not students:
         return "No student found with such name or surname!"
 
