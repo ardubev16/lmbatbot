@@ -2,7 +2,6 @@
 
 import logging
 
-from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings
 from telegram import Update
@@ -44,7 +43,6 @@ async def set_commands(db_helper: DbHelper, app: Application) -> None:
 
 
 def main() -> None:
-    load_dotenv()
     settings = Settings()
     init_db(settings.DB_PATH)
 
