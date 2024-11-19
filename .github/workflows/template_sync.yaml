@@ -1,0 +1,28 @@
+on:
+  schedule:
+    - cron: "0 0 1 * *"
+  workflow_dispatch:
+
+jobs:
+  repo-sync:
+    runs-on: ubuntu-latest
+    # https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: actions-template-sync
+        uses: AndreasAugustin/actions-template-sync@v2
+        with:
+          source_repo_path: ardubev16/py-tgbot-template
+          upstream_branch: master
+          is_force_push_pr: true
+          is_pr_cleanup: true
+          git_user_name: actions-template-sync
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg_passphrase: ${{ secrets.GPG_PASSPHRASE }}
