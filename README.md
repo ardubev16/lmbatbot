@@ -1,3 +1,3 @@
-# Bot Name
+# LMBATBOT
 
-Simple template to write Telegram bots using Python and `python-telegram-bot`.
+Lonigo Maggiore di Brenta Arzignano Trento Bot
