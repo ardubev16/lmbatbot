@@ -1,15 +1,9 @@
 [project]
-name = "lmbatbot"
+name = "bot-name"
 version = "0.1.0"
-description = "A simple utility Bot with some fun commands"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
-    "pydantic==2.8.2",
-    "pydantic-settings==2.4.0",
-    "python-telegram-bot==21.5",
-    "requests==2.32.3",
-]
+dependencies = ["python-telegram-bot==21.7"]
 
 [tool.pyright]
 pythonVersion = "3.12"
