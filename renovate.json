@@ -7,5 +7,12 @@
     "group:allNonMajor",
     "group:recommended",
     "security:openssf-scorecard"
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": ["python"],
+      "matchUpdateTypes": ["minor"],
+      "enabled": false
+    }
   ]
 }
