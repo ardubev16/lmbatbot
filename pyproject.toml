@@ -1,15 +1,9 @@
 [project]
-name = "lmbatbot"
+name = "bot-name"
 version = "0.1.0"
-description = "A simple utility Bot with some fun commands"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
-    "pydantic==2.8.2",
-    "pydantic-settings==2.4.0",
-    "python-telegram-bot==21.5",
-    "requests==2.32.3",
-]
+dependencies = ["python-telegram-bot==21.9"]
 
 [tool.pyright]
 pythonVersion = "3.12"
@@ -30,7 +24,6 @@ ignore = [
     "D212",   # Multi-line docstring summary should start at the first line
     "DTZ",    # No Naive Datetime
     "EM101",  # Exception must not use a string literal
-    "S101",   # Checks for uses of the assert keyword.
     "S311",   # Standard pseudo-random generators are not suitable for cryptographic purposes
     "TRY003", # Avoid specifying long messages outside the exception class
     "TRY400", # Use logging.exception() instead of logging.error() for logging exceptions
