@@ -23,6 +23,7 @@ jobs:
           upstream_branch: master
           is_force_push_pr: true
           is_pr_cleanup: true
+          git_remote_pull_params: --squash --strategy=recursive -X theirs
           git_user_name: actions-template-sync
           git_user_email: 43483037+ardubev16@users.noreply.github.com
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
