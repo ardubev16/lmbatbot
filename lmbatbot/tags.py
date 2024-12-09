@@ -7,7 +7,11 @@ from lmbatbot.utils import CommandParsingError, NotEnoughArgsError, TypedBaseHan
 
 
 @with_db
-async def handle_message_with_tags(db_helper: DbHelper, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def handle_message_with_tags(db_helper: DbHelper, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.effective_chat
+    assert update.effective_message
+    assert update.effective_user
+
     tags = list(update.effective_message.parse_entities([constants.MessageEntityType.HASHTAG]).values())
 
     found_groups = db_helper.get_tag_groups(update.effective_chat.id, tags)
@@ -35,6 +39,8 @@ async def handle_message_with_tags(db_helper: DbHelper, update: Update, _: Conte
 
 @with_db
 async def taglist_cmd(db_helper: DbHelper, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.effective_chat
+
     tag_groups = db_helper.get_tag_groups(update.effective_chat.id)
 
     string_group = [
@@ -53,14 +59,14 @@ Use the /tagadd to create a new group."""
     await update.effective_chat.send_message(message, parse_mode=constants.ParseMode.HTML)
 
 
-def _parse_tagadd_command(args: list[str]) -> TagGroup:
+def _parse_tagadd_command(args: list[str] | None) -> TagGroup:
     """
     Command must respect the following format.
 
     /tagadd <emoji> <#group> <@tags...>
     """
-    if len(args) < 3:  # noqa: PLR2004
-        raise NotEnoughArgsError(len(args))
+    if not args or len(args) < 3:  # noqa: PLR2004
+        raise NotEnoughArgsError(len(args or []))
 
     emojis, group_name, *tags = (arg.lower() for arg in args)
     if not group_name.startswith("#"):
@@ -73,6 +79,9 @@ def _parse_tagadd_command(args: list[str]) -> TagGroup:
 
 @with_db
 async def tagadd_cmd(db_helper: DbHelper, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.effective_chat
+    assert update.effective_message
+
     try:
         tag_group = _parse_tagadd_command(context.args)
     except CommandParsingError as e:
@@ -97,6 +106,9 @@ Please use the following format:
 
 @with_db
 async def tagdel_cmd(db_helper: DbHelper, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.effective_chat
+    assert update.effective_message
+
     if not context.args or len(context.args) != 1 or not context.args[0].startswith("#"):
         text = """\
 Invalid format. Please use the following format:

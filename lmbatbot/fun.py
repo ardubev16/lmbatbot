@@ -17,6 +17,10 @@ def get_sticker_ids() -> dict[str, list[str]]:
 
 
 async def stickers(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.effective_chat
+    assert update.effective_message
+    assert update.effective_message.text
+
     full_command = update.effective_message.text.split()[0]
     command = full_command.split("@")[0].lstrip("/")
 
@@ -26,6 +30,8 @@ async def stickers(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def lt(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.effective_chat
+
     lt_content_file = STATIC_PATH / "lt_content.txt"
     with lt_content_file.open() as file:
         await update.effective_chat.send_message(file.read())

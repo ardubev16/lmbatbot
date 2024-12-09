@@ -9,6 +9,10 @@ from lmbatbot.utils import TypedBaseHandler
 
 @with_db
 async def count_words_in_message(db_helper: DbHelper, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.effective_chat
+    assert update.effective_message
+    assert update.effective_message.text
+
     tracked_words = db_helper.get_tracked_words(update.effective_chat.id)
     for word_count in tracked_words:
         cnt = len(re.findall(word_count.word, update.effective_message.text, re.IGNORECASE))
@@ -17,6 +21,8 @@ async def count_words_in_message(db_helper: DbHelper, update: Update, _: Context
 
 @with_db
 async def stats_cmd(db_helper: DbHelper, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.effective_chat
+
     word_counts = db_helper.get_tracked_words(update.effective_chat.id)
     if len(word_counts) != 0:
         word_counts = sorted(word_counts, key=lambda x: x.count, reverse=True)
@@ -35,6 +41,9 @@ Use the /track to start tracking a new word."""
 
 @with_db
 async def track_cmd(db_helper: DbHelper, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.effective_chat
+    assert update.effective_message
+
     if not context.args or len(context.args) != 1:
         await update.effective_message.reply_text("Please specify a word to add!", disable_notification=True)
         return
@@ -52,6 +61,9 @@ async def track_cmd(db_helper: DbHelper, update: Update, context: ContextTypes.D
 
 @with_db
 async def untrack_cmd(db_helper: DbHelper, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.effective_chat
+    assert update.effective_message
+
     if not context.args or len(context.args) != 1:
         await update.effective_message.reply_text("Please specify a word to add!", disable_notification=True)
         return

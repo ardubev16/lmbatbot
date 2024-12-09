@@ -48,6 +48,9 @@ def _handle_name(db_helper: DbHelper, chat_id: int, name: str) -> str:
 
 @with_db
 async def uni_cmd(db_helper: DbHelper, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.effective_chat
+    assert update.effective_message
+
     if not context.args or len(context.args) != 1:
         await update.effective_message.reply_text("WARNING: You need to specify a name!")
         return
@@ -63,11 +66,15 @@ async def uni_cmd(db_helper: DbHelper, update: Update, context: ContextTypes.DEF
 
 @with_db
 async def unireset_cmd(db_helper: DbHelper, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.effective_chat
+
     deleted = db_helper.delete_student_infos(update.effective_chat.id)
     await update.effective_chat.send_message(f"{deleted} records have been deleted!")
 
 
 async def uniset_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
+    assert update.effective_chat
+
     await update.effective_chat.send_message(
         """\
 Send me a text file containing the data in newline separated strings with the following format:
@@ -82,6 +89,10 @@ If you want to cancel the operation, send /cancel""",
 
 @with_db
 async def file_upload(db_helper: DbHelper, update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
+    assert update.effective_chat
+    assert update.effective_message
+    assert update.effective_message.document
+
     file_obj = await update.effective_message.document.get_file()
     file = await file_obj.download_as_bytearray()
     await update.effective_message.delete()
@@ -102,11 +113,15 @@ async def file_upload(db_helper: DbHelper, update: Update, _: ContextTypes.DEFAU
 
 
 async def cancel_upload(update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
+    assert update.effective_chat
+
     await update.effective_chat.send_message("Operation cancelled!", disable_notification=True)
     return ConversationHandler.END
 
 
 async def file_upload_error(update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
+    assert update.effective_chat
+
     await update.effective_chat.send_message(
         """\
 WARNING: Invalid document format or message!
