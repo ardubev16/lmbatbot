@@ -1,9 +1,15 @@
+from pydantic.fields import Field
+from pydantic_settings import BaseSettings
 from telegram import Update, constants
 from telegram.ext import CommandHandler, ContextTypes, MessageHandler, filters
 
 from lmbatbot.database import DbHelper, DeleteResult, UpsertResult, with_db
 from lmbatbot.models import TagGroup
 from lmbatbot.utils import CommandParsingError, NotEnoughArgsError, TypedBaseHandler
+
+
+class TagsSettings(BaseSettings):
+    GLOBAL_PVT_NOTIFICATION_USERS: list[tuple[str, int]] = Field(default=[])
 
 
 @with_db
@@ -35,6 +41,12 @@ async def handle_message_with_tags(db_helper: DbHelper, update: Update, context:
 
     await update.effective_message.delete()
     await update.effective_chat.send_message(message, parse_mode=constants.ParseMode.HTML)
+
+    # FIXME: temporary implementation, will be created a table ad-hoc
+    settings = TagsSettings()
+    for username, user_id in settings.GLOBAL_PVT_NOTIFICATION_USERS:
+        if username in tag_list:
+            await context.bot.send_message(user_id, message, parse_mode=constants.ParseMode.HTML)
 
 
 @with_db
