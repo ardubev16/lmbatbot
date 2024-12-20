@@ -9,6 +9,11 @@ from telegram.ext import Application
 
 from lmbatbot import fun, tags, university_data, word_counter
 from lmbatbot.database import DbHelper, init_db, with_db
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
 
 class Settings(BaseSettings):

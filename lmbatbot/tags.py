@@ -12,6 +12,48 @@ class TagsSettings(BaseSettings):
     GLOBAL_PVT_NOTIFICATION_USERS: list[tuple[str, int]] = Field(default=[])
 
 
+async def handle_message_mentions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.effective_message
+    assert update.effective_user
+    assert update.effective_chat
+
+    mentioned_usernames = set(update.effective_message.parse_entities([constants.MessageEntityType.MENTION]).values())
+
+    # Verifica se ci sono menzioni nel messaggio
+    if not mentioned_usernames:
+        return
+
+    group_name = update.effective_chat.title or "gruppo"
+
+    # Ottieni il link al messaggio originale
+    try:
+        group_message_link = f"https://t.me/c/{str(update.effective_chat.id)[4:]}/{update.effective_message.message_id}"
+    except Exception as e:
+        print(f"Errore nella generazione del link al messaggio: {e}")
+        group_message_link = None
+
+    for username in mentioned_usernames:
+        # Rimuovi "@" dal nome utente menzionato
+        clean_username = username.lstrip("@")
+
+        # Trova l'ID dell'utente menzionato dai tuoi dati di configurazione
+        user_id = next(
+            (user_id for u, user_id in TagsSettings().GLOBAL_PVT_NOTIFICATION_USERS if u == clean_username),
+            None,
+        )
+
+        if user_id:
+            try:
+                # Inoltra il messaggio in privato
+                private_message = f"Hai ricevuto una menzione nel gruppo '{group_name}':\n\n"
+
+                if group_message_link:
+                    private_message += f"[Clicca qui per vedere il messaggio originale]({group_message_link})"
+                await context.bot.send_message(chat_id=user_id, text=private_message, parse_mode=constants.ParseMode.MARKDOWN)
+            except Exception as e:
+                print(f"Errore durante l'invio del messaggio a {username}: {e}")
+
+
 @with_db
 async def handle_message_with_tags(db_helper: DbHelper, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
@@ -31,6 +73,7 @@ async def handle_message_with_tags(db_helper: DbHelper, update: Update, context:
         tag_set = tag_set.union(group.tags)
 
     tag_list = [tag for tag in tag_set if tag.lstrip("@") != update.effective_user.username]
+
     content = update.effective_message.text_html_urled
 
     message = f"""\
@@ -42,11 +85,37 @@ async def handle_message_with_tags(db_helper: DbHelper, update: Update, context:
     await update.effective_message.delete()
     await update.effective_chat.send_message(message, parse_mode=constants.ParseMode.HTML)
 
+    group_name = update.effective_chat.title or "gruppo"
+
+    tag_list = [tag.lstrip('@') for tag in tag_list]
+
     # FIXME: temporary implementation, will be created a table ad-hoc
     settings = TagsSettings()
     for username, user_id in settings.GLOBAL_PVT_NOTIFICATION_USERS:
-        if username in tag_list:
-            await context.bot.send_message(user_id, message, parse_mode=constants.ParseMode.HTML)
+        if username.lower() in tag_list:
+            try:
+                # Crea il link al messaggio nel gruppo
+                try:
+                    group_message_link = f"https://t.me/c/{str(update.effective_chat.id)[4:]}/{update.effective_message.message_id}"
+                except Exception as e:
+                    print(f"Errore nella generazione del link al messaggio: {e}")
+                    group_message_link = None
+
+                # Prepara il messaggio da inviare in privato
+                private_message = (
+                    f"Hai ricevuto un messaggio dal gruppo '{group_name}':\n\n"
+                )
+                
+                # Aggiungi il link al messaggio originale se disponibile
+                if group_message_link:
+                    private_message += f"[Clicca qui per vedere il messaggio originale]({group_message_link})"
+
+                # Invia il messaggio privato
+                await context.bot.send_message(user_id, private_message, parse_mode=constants.ParseMode.MARKDOWN)
+            except Exception as e:
+                print(f"Errore durante l'invio del messaggio a {username}: {e}")
+
+
 
 
 @with_db
@@ -149,5 +218,9 @@ def handlers() -> list[TypedBaseHandler]:
         filters.Entity(constants.MessageEntityType.HASHTAG),
         handle_message_with_tags,
     )
+    mention_handler = MessageHandler(
+        filters.Entity(constants.MessageEntityType.MENTION),
+        handle_message_mentions,
+    )
 
-    return [taglist_handler, tagadd_handler, tagdel_handler, tag_handler]
+    return [taglist_handler, tagadd_handler, tagdel_handler, tag_handler, mention_handler]
