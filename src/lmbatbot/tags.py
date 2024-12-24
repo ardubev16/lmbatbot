@@ -36,7 +36,8 @@ async def handle_message_with_tags(db_helper: DbHelper, update: Update, context:
     await update.effective_message.delete()
     await update.effective_chat.send_message(message, parse_mode=constants.ParseMode.HTML)
 
-    # FIXME: temporary implementation, will be created a table ad-hoc
+    # TODO: temporary implementation, create a table ad-hoc
+    # https://github.com/ardubev16/lmbatbot/issues/12
     settings = Settings()
     for username, user_id in settings.GLOBAL_PVT_NOTIFICATION_USERS:
         if username in tag_list:
@@ -76,9 +77,11 @@ def _parse_tagadd_command(args: list[str] | None) -> TagGroup:
 
     emojis, group_name, *tags = (arg.lower() for arg in args)
     if not group_name.startswith("#"):
-        raise CommandParsingError("Invalid group name")
+        msg = "Invalid group name"
+        raise CommandParsingError(msg)
     if not all(tag.startswith("@") for tag in tags):
-        raise CommandParsingError("Invalid tags")
+        msg = "Invalid tags"
+        raise CommandParsingError(msg)
 
     return TagGroup(group=group_name, emojis=emojis, tags=tags)
 

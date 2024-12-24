@@ -176,7 +176,7 @@ CREATE TABLE IF NOT EXISTS student_info
 
 
 def init_db(db_path: str) -> None:
-    global _db
+    global _db  # noqa: PLW0603
     _db = DbHelper(db_path)
 
 
