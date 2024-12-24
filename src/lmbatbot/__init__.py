@@ -1,25 +1,11 @@
-#!/usr/bin/env python3
-
 import logging
 
-from pydantic import Field
-from pydantic_settings import BaseSettings
 from telegram import Update
 from telegram.ext import Application
 
 from lmbatbot import fun, tags, university_data, word_counter
 from lmbatbot.database import DbHelper, init_db, with_db
-
-
-class Settings(BaseSettings):
-    TELEGRAM_TOKEN: str = Field(default=...)
-    DB_PATH: str = Field(default=":memory:")
-
-
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO,
-)
+from lmbatbot.models import Settings
 
 
 @with_db
@@ -43,6 +29,12 @@ async def set_commands(db_helper: DbHelper, app: Application) -> None:
 
 
 def main() -> None:
+    logging.basicConfig(
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        level=logging.INFO,
+    )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+
     settings = Settings()
     init_db(settings.DB_PATH)
 
@@ -54,7 +46,3 @@ def main() -> None:
     application.add_handlers(fun.handlers())
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
-
-
-if __name__ == "__main__":
-    main()

@@ -3,6 +3,9 @@ name = "lmbatbot"
 version = "0.1.0"
 description = "A simple utility Bot with some fun commands"
 readme = "README.md"
+authors = [
+    { name = "Lorenzo Bevilacqua", email = "43483037+ardubev16@users.noreply.github.com" },
+]
 requires-python = ">=3.12"
 dependencies = [
     "pydantic==2.8.2",
@@ -10,6 +13,16 @@ dependencies = [
     "python-telegram-bot==21.5",
     "requests==2.32.3",
 ]
+
+[dependency-groups]
+dev = ["ruff==0.8.4"]
+
+[project.scripts]
+lmbatbot = "lmbatbot:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.pyright]
 pythonVersion = "3.12"
