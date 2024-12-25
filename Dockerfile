@@ -20,10 +20,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Copy app to runtime stage
 FROM python:3.12.8-slim-bookworm
+WORKDIR /app
 
 # Copy the application from the builder
 RUN useradd -r -U app
 COPY --from=builder --chown=app:app /app /app
+COPY ./data ./data
 
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
