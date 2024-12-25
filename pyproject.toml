@@ -1,6 +1,6 @@
 [project]
 name = "lmbatbot"
-version = "0.1.0"
+version = "0.1.2"
 description = "A simple utility Bot with some fun commands"
 readme = "README.md"
 authors = [
