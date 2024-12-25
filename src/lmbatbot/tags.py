@@ -1,16 +1,17 @@
+import contextlib
 import logging
 from dataclasses import dataclass
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.sqlite import insert
-from telegram import Update, constants
+from telegram import Message, MessageEntity, Update, constants
 from telegram.ext import CommandHandler, ContextTypes, MessageHandler, filters
 
 from lmbatbot.database import Session
 from lmbatbot.database.models import TagGroup
 from lmbatbot.database.types import DeleteResult, UpsertResult
 from lmbatbot.settings import settings
-from lmbatbot.utils import CommandParsingError, NotEnoughArgsError, TypedBaseHandler
+from lmbatbot.utils import CommandParsingError, TypedBaseHandler
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,6 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TagAddArgs:
     group: str
-    emojis: str
     tags: list[str]
 
 
@@ -33,41 +33,37 @@ def get_tag_groups(chat_id: int, groups: list[str] | None = None) -> list[TagGro
     return list(tag_groups)
 
 
-async def handle_message_with_tags(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def handle_message_with_tags(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
     assert update.effective_message
     assert update.effective_user
 
-    tags = list(update.effective_message.parse_entities([constants.MessageEntityType.HASHTAG]).values())
+    tags = list(update.effective_message.parse_entities([MessageEntity.HASHTAG]).values())
 
     found_groups = get_tag_groups(update.effective_chat.id, tags)
     if len(found_groups) == 0:
         return
 
-    emojis = ""
     tag_set: set[str] = set()
     for group in found_groups:
-        emojis += group.emojis
         tag_set = tag_set.union(group.tags)
 
-    tag_list = [tag for tag in tag_set if tag.lstrip("@") != update.effective_user.username]
-    content = update.effective_message.text_html_urled
+    if username := update.effective_user.username:
+        with contextlib.suppress(KeyError):
+            tag_set.remove(f"@{username.lower()}")
 
-    message = f"""\
-<i>{emojis} {update.effective_user.name}</i>
-{content}
-
-<i>{" ".join(tag_list)}</i>"""
-
-    await update.effective_message.delete()
-    await update.effective_chat.send_message(message, parse_mode=constants.ParseMode.HTML)
+    await update.effective_message.reply_html(" ".join(tag_set))
 
     # TODO: temporary implementation, create a table ad-hoc
     # https://github.com/ardubev16/lmbatbot/issues/12
+    message = f"You got mentioned in <b>{update.effective_chat.effective_name}</b> by {update.effective_user.name}."
     for username, user_id in settings.GLOBAL_PVT_NOTIFICATION_USERS:
-        if username in tag_list:
+        if username.lower() in tag_set:
             logger.info("Sending private message to `%s`", user_id)
-            await context.bot.send_message(user_id, message, parse_mode=constants.ParseMode.HTML)
+            await update.effective_message.reply_html(
+                message,
+                do_quote=update.effective_message.build_reply_arguments(target_chat_id=user_id),
+            )
 
 
 async def taglist_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -75,10 +71,7 @@ async def taglist_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
     tag_groups = get_tag_groups(update.effective_chat.id)
 
-    string_group = [
-        f"{group.emojis} {group.group_name}: {", ".join(name.lstrip("@") for name in group.tags)}"
-        for group in tag_groups
-    ]
+    string_group = [f"{group.group_name}: {", ".join(name.lstrip("@") for name in group.tags)}" for group in tag_groups]
     if len(string_group) != 0:
         message = f"""\
 <b>Groups:</b>
@@ -92,24 +85,28 @@ Use the /tagadd to create a new group."""
     await update.effective_chat.send_message(message, parse_mode=constants.ParseMode.HTML)
 
 
-def _parse_tagadd_command(args: list[str] | None) -> TagAddArgs:
+def _parse_tagadd_command(effective_message: Message) -> TagAddArgs:
     """
-    Command must respect the following format.
+    Command must contain the following arguments in any order.
 
-    /tagadd <emoji> <#group> <@tags...>
+    /tagadd <#group> <@mentions...>
     """
-    if not args or len(args) < 3:  # noqa: PLR2004
-        raise NotEnoughArgsError(len(args or []))
-
-    emojis, group_name, *tags = (arg.lower() for arg in args)
-    if not group_name.startswith("#"):
-        msg = "Invalid group name"
-        raise CommandParsingError(msg)
-    if not all(tag.startswith("@") for tag in tags):
-        msg = "Invalid tags"
+    hashtags = effective_message.parse_entities([MessageEntity.HASHTAG]).values()
+    if len(hashtags) != 1:
+        msg = f"Invalid number of tag groups, got: {list(hashtags)}"
         raise CommandParsingError(msg)
 
-    return TagAddArgs(group=group_name, emojis=emojis, tags=tags)
+    text_mentions = effective_message.parse_entities([MessageEntity.TEXT_MENTION])
+    if len(text_mentions) > 0:
+        msg = f"TEXT_MENTION are not supported yet, these users cannot be added: {list(text_mentions.values())}"
+        raise CommandParsingError(msg)
+
+    mentions = effective_message.parse_entities([MessageEntity.MENTION]).values()
+    if len(mentions) == 0:
+        msg = "No mentions found"
+        raise CommandParsingError(msg)
+
+    return TagAddArgs(group=next(iter(hashtags)).lower(), tags=[mention.lower() for mention in mentions])
 
 
 def upsert_tag_group(chat_id: int, tag_group: TagAddArgs) -> UpsertResult:
@@ -117,7 +114,6 @@ def upsert_tag_group(chat_id: int, tag_group: TagAddArgs) -> UpsertResult:
         {
             TagGroup.chat_id: chat_id,
             TagGroup.group_name: tag_group.group,
-            TagGroup.emojis: tag_group.emojis,
             TagGroup.tags: tag_group.tags,
         },
     )
@@ -134,7 +130,7 @@ def upsert_tag_group(chat_id: int, tag_group: TagAddArgs) -> UpsertResult:
     return UpsertResult.UPDATED if row_exists else UpsertResult.INSERTED
 
 
-async def tagadd_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def tagadd_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
     assert update.effective_message
     assert update.effective_user
@@ -142,13 +138,13 @@ async def tagadd_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     chat_id = update.effective_chat.id
 
     try:
-        tag_group = _parse_tagadd_command(context.args)
+        tag_group = _parse_tagadd_command(update.effective_message)
     except CommandParsingError as e:
         text = f"""\
 {e}
 
 Please use the following format:
-/tagadd <emoji> <#group> <@tags>"""
+/tagadd <#group> <@tags...>"""
         await update.effective_message.reply_text(text)
         return
 
@@ -175,32 +171,34 @@ def delete_tag_group(chat_id: int, group: str) -> DeleteResult:
     return DeleteResult.DELETED
 
 
-async def tagdel_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def tagdel_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
     assert update.effective_message
     assert update.effective_user
 
     chat_id = update.effective_chat.id
 
-    if not context.args or len(context.args) != 1 or not context.args[0].startswith("#"):
+    hashtags = update.effective_message.parse_entities([MessageEntity.HASHTAG]).values()
+    if len(hashtags) == 0:
         text = """\
 Invalid format. Please use the following format:
-/tagdel <group>"""
+/tagdel <#group...>"""
         await update.effective_message.reply_text(text)
         return
 
-    group = context.args[0]
+    texts: list[str] = []
+    for group in hashtags:
+        res = delete_tag_group(chat_id, group)
 
-    res = delete_tag_group(chat_id, group)
+        match res:
+            case DeleteResult.DELETED:
+                texts.append(f"Group {group} removed!")
+            case DeleteResult.NOT_FOUND:
+                texts.append(f"Group {group} not found!")
 
-    match res:
-        case DeleteResult.DELETED:
-            text = f"Group {group} removed!"
-        case DeleteResult.NOT_FOUND:
-            text = f"Group {group} not found!"
+        logger.info("User `%s` deleted tag group `%s` in chat `%s`", update.effective_user.id, group, chat_id)
 
-    logger.info("User `%s` deleted tag group `%s` in chat `%s`", update.effective_user.id, group, chat_id)
-    await update.effective_chat.send_message(text)
+    await update.effective_chat.send_message("\n".join(texts))
 
 
 def handlers() -> list[TypedBaseHandler]:
