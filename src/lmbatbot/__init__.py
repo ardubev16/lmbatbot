@@ -5,7 +5,7 @@ from telegram.ext import Application
 
 from lmbatbot import fun, tags, university_data, word_counter
 from lmbatbot.database import DbHelper, init_db, with_db
-from lmbatbot.models import Settings
+from lmbatbot.settings import settings
 
 
 @with_db
@@ -35,7 +35,6 @@ def main() -> None:
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
-    settings = Settings()
     init_db(settings.DB_PATH)
 
     application = Application.builder().token(settings.TELEGRAM_TOKEN).post_init(set_commands).build()

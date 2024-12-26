@@ -2,7 +2,8 @@ from telegram import Update, constants
 from telegram.ext import CommandHandler, ContextTypes, MessageHandler, filters
 
 from lmbatbot.database import DbHelper, DeleteResult, UpsertResult, with_db
-from lmbatbot.models import Settings, TagGroup
+from lmbatbot.models import TagGroup
+from lmbatbot.settings import settings
 from lmbatbot.utils import CommandParsingError, NotEnoughArgsError, TypedBaseHandler
 
 
@@ -38,7 +39,6 @@ async def handle_message_with_tags(db_helper: DbHelper, update: Update, context:
 
     # TODO: temporary implementation, create a table ad-hoc
     # https://github.com/ardubev16/lmbatbot/issues/12
-    settings = Settings()
     for username, user_id in settings.GLOBAL_PVT_NOTIFICATION_USERS:
         if username in tag_list:
             await context.bot.send_message(user_id, message, parse_mode=constants.ParseMode.HTML)
