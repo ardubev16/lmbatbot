@@ -31,3 +31,7 @@ class StudentInfo(Base):
     name: Mapped[str]
     surname: Mapped[str]
     email: Mapped[str]
+
+    @property
+    def fullname(self) -> str:
+        return f"{self.name.capitalize()} {self.surname.capitalize()}"
