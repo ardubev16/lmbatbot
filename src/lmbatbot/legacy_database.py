@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Concatenate
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from lmbatbot.models import StudentInfo, WordCount
+from lmbatbot.models import StudentInfo
 from lmbatbot.settings import settings
 
 if TYPE_CHECKING:
@@ -51,44 +51,6 @@ CREATE TABLE IF NOT EXISTS student_info
 
     def __del__(self):
         self.conn.close()
-
-    # word_counter
-    def insert_word_to_track(self, chat_id: int, word: str) -> UpsertResult:
-        try:
-            self.conn.execute("INSERT INTO word_counter (chat_id, word) VALUES (?, ?)", (chat_id, word))
-        except sqlite3.IntegrityError:  # UNIQUE constraint failed: word_counter.chat_id, word_counter.word
-            self.conn.execute("UPDATE word_counter SET count = 0 WHERE chat_id = ? AND word = ?", (chat_id, word))
-            return UpsertResult.UPDATED
-        else:
-            return UpsertResult.INSERTED
-        finally:
-            self.conn.commit()
-
-    def get_tracked_words(self, chat_id: int) -> list[WordCount]:
-        word_counts = self.conn.execute(
-            "SELECT word, count FROM word_counter WHERE chat_id = ?",
-            (chat_id,),
-        ).fetchall()
-        return [WordCount(word=word_count[0], count=word_count[1]) for word_count in word_counts]
-
-    def add_to_word_count(self, chat_id: int, word: str, count: int) -> None:
-        self.conn.execute(
-            "UPDATE word_counter SET count = count + ? WHERE chat_id = ? AND word = ?",
-            (count, chat_id, word),
-        )
-        self.conn.commit()
-
-    def delete_tracked_word(self, chat_id: int, word: str) -> DeleteResult:
-        deleted_rows = self.conn.execute(
-            "DELETE FROM word_counter WHERE chat_id = ? AND word = ?",
-            (chat_id, word),
-        ).rowcount
-        self.conn.commit()
-
-        if deleted_rows == 0:
-            return DeleteResult.NOT_FOUND
-
-        return DeleteResult.DELETED
 
     # student_info
     def insert_student_infos(self, chat_id: int, student_infos: list[StudentInfo]) -> int:

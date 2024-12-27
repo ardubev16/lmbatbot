@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["ruff==0.8.4"]
+dev = ["ruff==0.8.4", "vulture==2.14"]
 
 [project.scripts]
 lmbatbot = "lmbatbot:main"

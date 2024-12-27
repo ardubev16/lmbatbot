@@ -3,7 +3,7 @@ import logging
 from telegram import Update
 from telegram.ext import Application
 
-from lmbatbot import fun, tags  # , university_data, word_counter
+from lmbatbot import fun, tags, word_counter  # , university_data
 from lmbatbot.database import engine
 from lmbatbot.database.models import Base
 from lmbatbot.settings import settings
@@ -38,7 +38,7 @@ def main() -> None:
     Base.metadata.create_all(engine)
 
     # . application.add_handlers(university_data.handlers())
-    # . application.add_handlers(word_counter.handlers())
+    application.add_handlers(word_counter.handlers())
     application.add_handlers(tags.handlers())
     application.add_handlers(fun.handlers())
 

@@ -2,12 +2,6 @@ from dataclasses import dataclass
 
 
 @dataclass
-class WordCount:
-    word: str
-    count: int
-
-
-@dataclass
 class StudentInfo:
     student_id: int
     name: str
