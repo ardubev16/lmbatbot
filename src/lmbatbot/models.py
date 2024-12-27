@@ -2,13 +2,6 @@ from dataclasses import dataclass
 
 
 @dataclass
-class TagGroup:
-    group: str
-    emojis: str
-    tags: list[str]
-
-
-@dataclass
 class WordCount:
     word: str
     count: int

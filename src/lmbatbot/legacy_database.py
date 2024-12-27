@@ -1,15 +1,22 @@
 from __future__ import annotations
 
 import functools
-import json
 import sqlite3
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Concatenate
 
-from lmbatbot.models import StudentInfo, TagGroup, WordCount
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from lmbatbot.models import StudentInfo, WordCount
+from lmbatbot.settings import settings
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+engine = create_engine(settings.DB_URL)
+
+Session = sessionmaker(engine)
 
 
 class UpsertResult(Enum):
@@ -44,62 +51,6 @@ CREATE TABLE IF NOT EXISTS student_info
 
     def __del__(self):
         self.conn.close()
-
-    # tag_groups
-    def upsert_tag_group(self, chat_id: int, tag_group: TagGroup) -> UpsertResult:
-        (group_exists,) = self.conn.execute(
-            "SELECT COUNT(*) FROM tag_groups WHERE chat_id = ? AND group_name = ?",
-            (chat_id, tag_group.group),
-        ).fetchone()
-
-        if group_exists:
-            self.conn.execute(
-                "UPDATE tag_groups SET emojis = ?, tags = ? WHERE chat_id = ? AND group_name = ?",
-                (tag_group.emojis, json.dumps(tag_group.tags), chat_id, tag_group.group),
-            )
-            operation_done = UpsertResult.UPDATED
-        else:
-            self.conn.execute(
-                "INSERT INTO tag_groups (chat_id, group_name, emojis, tags) VALUES (?, ?, ?, ?)",
-                (chat_id, tag_group.group, tag_group.emojis, json.dumps(tag_group.tags)),
-            )
-            operation_done = UpsertResult.INSERTED
-
-        self.conn.commit()
-        return operation_done
-
-    def get_tag_groups(self, chat_id: int, groups: list[str] | None = None) -> list[TagGroup]:
-        tag_groups: list[tuple[str, str, str]]
-        if not groups:
-            tag_groups = self.conn.execute(
-                "SELECT group_name, emojis, tags FROM tag_groups WHERE chat_id = ?",
-                (chat_id,),
-            ).fetchall()
-        else:
-            tag_groups = []
-            for group in groups:
-                tag_groups.append(
-                    self.conn.execute(
-                        "SELECT group_name, emojis, tags FROM tag_groups WHERE chat_id = ? AND group_name = ?",
-                        (chat_id, group),
-                    ).fetchone(),
-                )
-
-        return [
-            TagGroup(group=tag_group[0], emojis=tag_group[1], tags=json.loads(tag_group[2])) for tag_group in tag_groups
-        ]
-
-    def delete_tag_group(self, chat_id: int, group: str) -> DeleteResult:
-        deleted_rows = self.conn.execute(
-            "DELETE FROM tag_groups WHERE chat_id = ? AND group_name = ?",
-            (chat_id, group),
-        ).rowcount
-        self.conn.commit()
-
-        if deleted_rows == 0:
-            return DeleteResult.NOT_FOUND
-
-        return DeleteResult.DELETED
 
     # word_counter
     def insert_word_to_track(self, chat_id: int, word: str) -> UpsertResult:

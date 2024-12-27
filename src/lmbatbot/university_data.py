@@ -1,7 +1,7 @@
 from telegram import Update, constants
 from telegram.ext import CommandHandler, ContextTypes, ConversationHandler, MessageHandler, filters
 
-from lmbatbot.database import DbHelper, with_db
+from lmbatbot.legacy_database import DbHelper, with_db
 from lmbatbot.models import StudentInfo
 from lmbatbot.utils import TypedBaseHandler, strip
 

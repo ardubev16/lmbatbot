@@ -3,7 +3,7 @@ import re
 from telegram import Update, constants
 from telegram.ext import CommandHandler, ContextTypes, MessageHandler, filters
 
-from lmbatbot.database import DbHelper, DeleteResult, UpsertResult, with_db
+from lmbatbot.legacy_database import DbHelper, DeleteResult, UpsertResult, with_db
 from lmbatbot.utils import TypedBaseHandler
 
 
