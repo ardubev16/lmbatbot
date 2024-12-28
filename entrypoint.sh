@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-set -eu
+set -exu
 
 INITIAL_REVISION=f0f76bb9b563
 

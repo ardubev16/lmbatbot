@@ -31,7 +31,6 @@ def main() -> None:
         level=logging.INFO,
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
     application = Application.builder().token(settings.TELEGRAM_TOKEN).post_init(set_commands).build()
 

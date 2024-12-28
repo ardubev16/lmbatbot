@@ -66,6 +66,7 @@ async def handle_message_with_tags(update: Update, context: ContextTypes.DEFAULT
     # https://github.com/ardubev16/lmbatbot/issues/12
     for username, user_id in settings.GLOBAL_PVT_NOTIFICATION_USERS:
         if username in tag_list:
+            logger.info("Sending private message to `%s`", user_id)
             await context.bot.send_message(user_id, message, parse_mode=constants.ParseMode.HTML)
 
 
@@ -121,7 +122,6 @@ def upsert_tag_group(chat_id: int, tag_group: TagAddArgs) -> UpsertResult:
         },
     )
     insert_stmt = insert_stmt.on_conflict_do_update(set_=dict(insert_stmt.excluded))
-    logger.info(str(insert_stmt))
     with Session.begin() as session:
         row_exists = session.execute(
             select(func.count())
@@ -137,6 +137,9 @@ def upsert_tag_group(chat_id: int, tag_group: TagAddArgs) -> UpsertResult:
 async def tagadd_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
     assert update.effective_message
+    assert update.effective_user
+
+    chat_id = update.effective_chat.id
 
     try:
         tag_group = _parse_tagadd_command(context.args)
@@ -149,7 +152,7 @@ Please use the following format:
         await update.effective_message.reply_text(text)
         return
 
-    res = upsert_tag_group(update.effective_chat.id, tag_group)
+    res = upsert_tag_group(chat_id, tag_group)
 
     match res:
         case UpsertResult.UPDATED:
@@ -157,6 +160,7 @@ Please use the following format:
         case UpsertResult.INSERTED:
             text = f"Group {tag_group.group} added!"
 
+    logger.info("User `%s` added new tag group `%s` in chat `%s`", update.effective_user.id, tag_group.group, chat_id)
     await update.effective_chat.send_message(text)
 
 
@@ -174,6 +178,9 @@ def delete_tag_group(chat_id: int, group: str) -> DeleteResult:
 async def tagdel_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
     assert update.effective_message
+    assert update.effective_user
+
+    chat_id = update.effective_chat.id
 
     if not context.args or len(context.args) != 1 or not context.args[0].startswith("#"):
         text = """\
@@ -184,7 +191,7 @@ Invalid format. Please use the following format:
 
     group = context.args[0]
 
-    res = delete_tag_group(update.effective_chat.id, group)
+    res = delete_tag_group(chat_id, group)
 
     match res:
         case DeleteResult.DELETED:
@@ -192,6 +199,7 @@ Invalid format. Please use the following format:
         case DeleteResult.NOT_FOUND:
             text = f"Group {group} not found!"
 
+    logger.info("User `%s` deleted tag group `%s` in chat `%s`", update.effective_user.id, group, chat_id)
     await update.effective_chat.send_message(text)
 
 

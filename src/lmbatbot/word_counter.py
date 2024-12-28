@@ -1,3 +1,4 @@
+import logging
 import re
 
 from sqlalchemy import delete, select
@@ -8,6 +9,8 @@ from lmbatbot.database import Session
 from lmbatbot.database.models import WordCounter
 from lmbatbot.database.types import DeleteResult, UpsertResult
 from lmbatbot.utils import TypedBaseHandler
+
+logger = logging.getLogger(__name__)
 
 
 def insert_word_to_track(chat_id: int, word: str) -> UpsertResult:
@@ -85,6 +88,7 @@ async def track_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             text = f"WARNING: <b>{word.capitalize()}</b> counter has been reset!"
         case UpsertResult.INSERTED:
             text = f"Added <b>{word.capitalize()}</b> to the list!"
+    logger.info("Start tracking new word `%s` for chat `%s`", word, update.effective_chat.id)
 
     await update.effective_chat.send_message(text, disable_notification=True, parse_mode=constants.ParseMode.HTML)
 
@@ -104,6 +108,7 @@ async def untrack_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             text = f"Removed <b>{word.capitalize()}</b> from the list!"
         case DeleteResult.NOT_FOUND:
             text = f"WARNING: <b>{word.capitalize()}</b> was not on the list!"
+    logger.info("Stop tracking new word `%s` for chat `%s`", word, update.effective_chat.id)
 
     await update.effective_chat.send_message(text, disable_notification=True, parse_mode=constants.ParseMode.HTML)
 

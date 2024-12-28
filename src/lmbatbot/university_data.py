@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 
 from sqlalchemy import delete, func, select
@@ -8,6 +9,8 @@ from telegram.ext import CommandHandler, ContextTypes, ConversationHandler, Mess
 from lmbatbot.database import Session
 from lmbatbot.database.models import StudentInfo
 from lmbatbot.utils import TypedBaseHandler, strip
+
+logger = logging.getLogger(__name__)
 
 FILE_UPLOAD_STATE = 1
 
@@ -88,10 +91,12 @@ async def uni_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def unireset_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
+    assert update.effective_user
 
     with Session.begin() as s:
         deleted = s.execute(delete(StudentInfo).where(StudentInfo.chat_id == update.effective_chat.id)).rowcount
 
+    logger.info("User `%s` deleted student data for chat `%s`", update.effective_user.id, update.effective_chat.id)
     await update.effective_chat.send_message(f"{deleted} records have been deleted!")
 
 
@@ -114,6 +119,9 @@ async def file_upload(update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
     assert update.effective_chat
     assert update.effective_message
     assert update.effective_message.document
+    assert update.effective_user
+
+    chat_id = update.effective_chat.id
 
     file_obj = await update.effective_message.document.get_file()
     file = await file_obj.download_as_bytearray()
@@ -121,6 +129,7 @@ async def file_upload(update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
 
     to_insert = _parse_file(file)
     if not to_insert:
+        logger.info("User `%s` sent a file with invalid format in chat `%s`", update.effective_user.id, chat_id)
         await update.effective_chat.send_message("WARNING: The file you sent is not valid!", disable_notification=True)
         return FILE_UPLOAD_STATE
 
@@ -130,7 +139,7 @@ async def file_upload(update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
             insert_stmt.on_conflict_do_nothing(),
             [
                 {
-                    "chat_id": update.effective_chat.id,
+                    "chat_id": chat_id,
                     "student_id": student.student_id,
                     "name": student.name,
                     "surname": student.surname,
@@ -140,9 +149,15 @@ async def file_upload(update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
             ],
         )
         total_chat_entries = s.scalars(
-            select(func.count()).where(StudentInfo.chat_id == update.effective_chat.id),
+            select(func.count()).where(StudentInfo.chat_id == chat_id),
         ).one()
 
+    logger.info(
+        "User `%s` updated student data for chat `%s`, `%s` entries available",
+        update.effective_user.id,
+        chat_id,
+        total_chat_entries,
+    )
     await update.effective_chat.send_message(
         f"Successfully updated student data, <b>{total_chat_entries}</b> entries are now available in this chat!",
         disable_notification=True,
