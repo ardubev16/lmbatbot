@@ -11,7 +11,6 @@ class TagGroup(Base):
 
     chat_id: Mapped[int] = mapped_column(primary_key=True)
     group_name: Mapped[str] = mapped_column(primary_key=True)
-    emojis: Mapped[str]
     tags: Mapped[list[str]] = mapped_column(JSON)
 
 
