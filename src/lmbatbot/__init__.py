@@ -5,6 +5,7 @@ from telegram.ext import Application
 
 from lmbatbot import fun, tags, university_data, word_counter
 from lmbatbot.settings import settings
+from lmbatbot.utils import version_command
 
 
 async def set_commands(app: Application) -> None:
@@ -21,6 +22,7 @@ async def set_commands(app: Application) -> None:
             ("unireset", "Deletes all records for the current chat"),
             ("bocchi", "Bocchi"),
             ("lt", "REEEEEEEEEEEEETI"),
+            ("version", "Display bot version"),
         ),
     )
 
@@ -38,5 +40,6 @@ def main() -> None:
     application.add_handlers(word_counter.handlers())
     application.add_handlers(tags.handlers())
     application.add_handlers(fun.handlers())
+    application.add_handler(version_command())
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
