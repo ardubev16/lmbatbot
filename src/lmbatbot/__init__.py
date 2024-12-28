@@ -4,13 +4,10 @@ from telegram import Update
 from telegram.ext import Application
 
 from lmbatbot import fun, tags, university_data, word_counter
-from lmbatbot.database import DbHelper, init_db, with_db
-from lmbatbot.models import Settings
+from lmbatbot.settings import settings
 
 
-@with_db
-async def set_commands(db_helper: DbHelper, app: Application) -> None:
-    db_helper.create_tables()
+async def set_commands(app: Application) -> None:
     await app.bot.set_my_commands(
         (
             ("taglist", "Lists available tags"),
@@ -34,9 +31,6 @@ def main() -> None:
         level=logging.INFO,
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
-
-    settings = Settings()
-    init_db(settings.DB_PATH)
 
     application = Application.builder().token(settings.TELEGRAM_TOKEN).post_init(set_commands).build()
 

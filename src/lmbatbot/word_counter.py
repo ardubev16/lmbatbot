@@ -1,29 +1,63 @@
+import logging
 import re
 
+from sqlalchemy import delete, select
 from telegram import Update, constants
 from telegram.ext import CommandHandler, ContextTypes, MessageHandler, filters
 
-from lmbatbot.database import DbHelper, DeleteResult, UpsertResult, with_db
+from lmbatbot.database import Session
+from lmbatbot.database.models import WordCounter
+from lmbatbot.database.types import DeleteResult, UpsertResult
 from lmbatbot.utils import TypedBaseHandler
 
+logger = logging.getLogger(__name__)
 
-@with_db
-async def count_words_in_message(db_helper: DbHelper, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+
+def insert_word_to_track(chat_id: int, word: str) -> UpsertResult:
+    with Session.begin() as s:
+        word_counter = s.scalars(
+            select(WordCounter).where(WordCounter.chat_id == chat_id, WordCounter.word == word),
+        ).one_or_none()
+
+        if word_counter:
+            word_counter.count = 0
+            return UpsertResult.UPDATED
+
+        s.add(WordCounter(chat_id=chat_id, word=word))
+        return UpsertResult.INSERTED
+
+
+def delete_tracked_word(chat_id: int, word: str) -> DeleteResult:
+    with Session.begin() as s:
+        deleted_rows = s.execute(
+            delete(WordCounter).where(WordCounter.chat_id == chat_id, WordCounter.word == word),
+        ).rowcount
+
+    if deleted_rows == 0:
+        return DeleteResult.NOT_FOUND
+
+    return DeleteResult.DELETED
+
+
+async def count_words_in_message(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
     assert update.effective_message
     assert update.effective_message.text
 
-    tracked_words = db_helper.get_tracked_words(update.effective_chat.id)
-    for word_count in tracked_words:
-        cnt = len(re.findall(word_count.word, update.effective_message.text, re.IGNORECASE))
-        db_helper.add_to_word_count(update.effective_chat.id, word_count.word, cnt)
+    with Session.begin() as s:
+        tracked_words = s.scalars(select(WordCounter).where(WordCounter.chat_id == update.effective_chat.id)).all()
+
+        for word_counter in tracked_words:
+            cnt = len(re.findall(word_counter.word, update.effective_message.text, re.IGNORECASE))
+            word_counter.count += cnt
 
 
-@with_db
-async def stats_cmd(db_helper: DbHelper, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def stats_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
 
-    word_counts = db_helper.get_tracked_words(update.effective_chat.id)
+    with Session() as s:
+        word_counts = s.scalars(select(WordCounter).where(WordCounter.chat_id == update.effective_chat.id)).all()
+
     if len(word_counts) != 0:
         word_counts = sorted(word_counts, key=lambda x: x.count, reverse=True)
         stats = [f"{word_count.word.capitalize()}: {word_count.count}" for word_count in word_counts]
@@ -39,8 +73,7 @@ Use the /track to start tracking a new word."""
     await update.effective_chat.send_message(text, parse_mode=constants.ParseMode.HTML)
 
 
-@with_db
-async def track_cmd(db_helper: DbHelper, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def track_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
     assert update.effective_message
 
@@ -49,18 +82,18 @@ async def track_cmd(db_helper: DbHelper, update: Update, context: ContextTypes.D
         return
     word = context.args[0].lower()
 
-    res = db_helper.insert_word_to_track(update.effective_chat.id, word)
+    res = insert_word_to_track(update.effective_chat.id, word)
     match res:
         case UpsertResult.UPDATED:
             text = f"WARNING: <b>{word.capitalize()}</b> counter has been reset!"
         case UpsertResult.INSERTED:
             text = f"Added <b>{word.capitalize()}</b> to the list!"
+    logger.info("Start tracking new word `%s` for chat `%s`", word, update.effective_chat.id)
 
     await update.effective_chat.send_message(text, disable_notification=True, parse_mode=constants.ParseMode.HTML)
 
 
-@with_db
-async def untrack_cmd(db_helper: DbHelper, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def untrack_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
     assert update.effective_message
 
@@ -69,12 +102,13 @@ async def untrack_cmd(db_helper: DbHelper, update: Update, context: ContextTypes
         return
     word = context.args[0].lower()
 
-    res = db_helper.delete_tracked_word(update.effective_chat.id, word)
+    res = delete_tracked_word(update.effective_chat.id, word)
     match res:
         case DeleteResult.DELETED:
             text = f"Removed <b>{word.capitalize()}</b> from the list!"
         case DeleteResult.NOT_FOUND:
             text = f"WARNING: <b>{word.capitalize()}</b> was not on the list!"
+    logger.info("Stop tracking new word `%s` for chat `%s`", word, update.effective_chat.id)
 
     await update.effective_chat.send_message(text, disable_notification=True, parse_mode=constants.ParseMode.HTML)
 
