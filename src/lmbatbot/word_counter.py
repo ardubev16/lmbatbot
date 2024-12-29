@@ -13,7 +13,7 @@ from lmbatbot.utils import TypedBaseHandler
 logger = logging.getLogger(__name__)
 
 
-def insert_word_to_track(chat_id: int, word: str) -> UpsertResult:
+def _insert_word_to_track(chat_id: int, word: str) -> UpsertResult:
     with Session.begin() as s:
         word_counter = s.scalars(
             select(WordCounter).where(WordCounter.chat_id == chat_id, WordCounter.word == word),
@@ -27,7 +27,7 @@ def insert_word_to_track(chat_id: int, word: str) -> UpsertResult:
         return UpsertResult.INSERTED
 
 
-def delete_tracked_word(chat_id: int, word: str) -> DeleteResult:
+def _delete_tracked_word(chat_id: int, word: str) -> DeleteResult:
     with Session.begin() as s:
         deleted_rows = s.execute(
             delete(WordCounter).where(WordCounter.chat_id == chat_id, WordCounter.word == word),
@@ -82,7 +82,7 @@ async def track_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     word = context.args[0].lower()
 
-    res = insert_word_to_track(update.effective_chat.id, word)
+    res = _insert_word_to_track(update.effective_chat.id, word)
     match res:
         case UpsertResult.UPDATED:
             text = f"WARNING: <b>{word.capitalize()}</b> counter has been reset!"
@@ -102,7 +102,7 @@ async def untrack_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         return
     word = context.args[0].lower()
 
-    res = delete_tracked_word(update.effective_chat.id, word)
+    res = _delete_tracked_word(update.effective_chat.id, word)
     match res:
         case DeleteResult.DELETED:
             text = f"Removed <b>{word.capitalize()}</b> from the list!"

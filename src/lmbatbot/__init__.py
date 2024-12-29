@@ -8,7 +8,7 @@ from lmbatbot.settings import settings
 from lmbatbot.utils import version_command
 
 
-async def set_commands(app: Application) -> None:
+async def _set_commands(app: Application) -> None:
     await app.bot.set_my_commands(
         (
             ("taglist", "Lists available tags"),
@@ -34,7 +34,7 @@ def main() -> None:
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
-    application = Application.builder().token(settings.TELEGRAM_TOKEN).post_init(set_commands).build()
+    application = Application.builder().token(settings.TELEGRAM_TOKEN).post_init(_set_commands).build()
 
     application.add_handlers(university_data.handlers())
     application.add_handlers(word_counter.handlers())
