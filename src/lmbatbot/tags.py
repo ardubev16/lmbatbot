@@ -45,7 +45,8 @@ def _parse_tagadd_command(effective_message: Message) -> TagAddArgs:
         msg = "No mentions found"
         raise CommandParsingError(msg)
 
-    return TagAddArgs(group=next(iter(hashtags)).lower(), tags=[mention.lower() for mention in mentions])
+    deuped_mentions = {mention.lower() for mention in mentions}
+    return TagAddArgs(group=next(iter(hashtags)).lower(), tags=list(deuped_mentions))
 
 
 def _upsert_tag_group(chat_id: int, tag_group: TagAddArgs) -> UpsertResult:
