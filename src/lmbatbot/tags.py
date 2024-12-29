@@ -58,14 +58,14 @@ def _upsert_tag_group(chat_id: int, tag_group: TagAddArgs) -> UpsertResult:
         },
     )
     insert_stmt = insert_stmt.on_conflict_do_update(set_=dict(insert_stmt.excluded))
-    with Session.begin() as session:
-        row_exists = session.execute(
+    with Session.begin() as s:
+        row_exists = s.execute(
             select(func.count())
             .select_from(TagGroup)
             .where(TagGroup.chat_id == chat_id, TagGroup.group_name == tag_group.group),
         ).scalar_one_or_none()
 
-        session.execute(insert_stmt)
+        s.execute(insert_stmt)
 
     return UpsertResult.UPDATED if row_exists else UpsertResult.INSERTED
 
@@ -89,8 +89,8 @@ async def _send_private_mentions(message: Message, mentioned_usernames: set[str]
 async def taglist_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
 
-    with Session() as session:
-        tag_groups = session.scalars(select(TagGroup).where(TagGroup.chat_id == update.effective_chat.id)).all()
+    with Session() as s:
+        tag_groups = s.scalars(select(TagGroup).where(TagGroup.chat_id == update.effective_chat.id)).all()
 
     string_group = [f"{group.group_name}: {", ".join(name.lstrip("@") for name in group.tags)}" for group in tag_groups]
     if len(string_group) != 0:
@@ -151,8 +151,8 @@ Invalid format. Please use the following format:
         await update.effective_message.reply_text(text)
         return
 
-    with Session.begin() as session:
-        deleted_groups = session.scalars(
+    with Session.begin() as s:
+        deleted_groups = s.scalars(
             delete(TagGroup)
             .where(TagGroup.chat_id == chat_id, TagGroup.group_name.in_(hashtags))
             .returning(TagGroup.group_name),
@@ -180,8 +180,8 @@ async def handle_message_with_tags(update: Update, _: ContextTypes.DEFAULT_TYPE)
     tags = list(map(str.lower, update.effective_message.parse_entities([MessageEntity.HASHTAG]).values()))
     mentions = list(map(str.lower, update.effective_message.parse_entities([MessageEntity.MENTION]).values()))
 
-    with Session() as session:
-        found_groups = session.scalars(
+    with Session() as s:
+        found_groups = s.scalars(
             select(TagGroup).where(TagGroup.chat_id == update.effective_chat.id).where(TagGroup.group_name.in_(tags)),
         ).all()
 
