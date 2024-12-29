@@ -187,20 +187,20 @@ if you want to cancel the operation, send /cancel""",
 
 
 def handlers() -> list[TypedBaseHandler]:
-    uni_handler = CommandHandler("uni", uni_cmd)
-    unireset_handler = CommandHandler("unireset", unireset_cmd)
-    uniset_handler = ConversationHandler(
-        entry_points=[CommandHandler("uniset", uniset_cmd)],
-        states={
-            FILE_UPLOAD_STATE: [
-                MessageHandler(filters.Document.TEXT, file_upload),
-                MessageHandler(
-                    ~filters.Document.TEXT & ~filters.Regex("^/cancel"),
-                    file_upload_error,
-                ),
-            ],
-        },
-        fallbacks=[CommandHandler("cancel", cancel_upload)],
-    )
-
-    return [uni_handler, unireset_handler, uniset_handler]
+    return [
+        CommandHandler("uni", uni_cmd),
+        CommandHandler("unireset", unireset_cmd),
+        ConversationHandler(
+            entry_points=[CommandHandler("uniset", uniset_cmd)],
+            states={
+                FILE_UPLOAD_STATE: [
+                    MessageHandler(filters.Document.TEXT, file_upload),
+                    MessageHandler(
+                        ~filters.Document.TEXT & ~filters.Regex("^/cancel"),
+                        file_upload_error,
+                    ),
+                ],
+            },
+            fallbacks=[CommandHandler("cancel", cancel_upload)],
+        ),
+    ]

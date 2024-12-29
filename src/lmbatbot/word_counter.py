@@ -116,15 +116,16 @@ async def untrack_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 def handlers() -> dict[int, list[TypedBaseHandler] | tuple[TypedBaseHandler]]:
     DEFAULT, TRACKER = range(2)  # noqa: N806
 
-    stats_handler = CommandHandler("stats", stats_cmd)
-    track_handler = CommandHandler("track", track_cmd)
-    untrack_handler = CommandHandler("untrack", untrack_cmd)
-    message_handler = MessageHandler(
-        filters.TEXT,
-        count_words_in_message,
-    )
-
     return {
-        DEFAULT: [stats_handler, track_handler, untrack_handler],
-        TRACKER: [message_handler],
+        DEFAULT: [
+            CommandHandler("stats", stats_cmd),
+            CommandHandler("track", track_cmd),
+            CommandHandler("untrack", untrack_cmd),
+        ],
+        TRACKER: [
+            MessageHandler(
+                filters.TEXT,
+                count_words_in_message,
+            ),
+        ],
     }
