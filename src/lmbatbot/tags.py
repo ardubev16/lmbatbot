@@ -9,7 +9,7 @@ from telegram.ext import CommandHandler, ContextTypes, MessageHandler, filters
 
 from lmbatbot.database import Session
 from lmbatbot.database.models import TagGroup
-from lmbatbot.database.types import DeleteResult, UpsertResult
+from lmbatbot.database.types import UpsertResult
 from lmbatbot.settings import settings
 from lmbatbot.utils import CommandParsingError, TypedBaseHandler
 
@@ -30,9 +30,11 @@ def _parse_tagadd_command(effective_message: Message) -> TagAddArgs:
     """
     hashtags = effective_message.parse_entities([MessageEntity.HASHTAG]).values()
     if len(hashtags) != 1:
-        msg = f"Invalid number of tag groups, got: {list(hashtags)}"
+        msg = f"Invalid number of tag groups. Need: 1, Got: {len(hashtags)}"
         raise CommandParsingError(msg)
 
+    # TODO: add support for TEXT_MENTION
+    # https://github.com/ardubev16/lmbatbot/issues/18
     text_mentions = effective_message.parse_entities([MessageEntity.TEXT_MENTION])
     if len(text_mentions) > 0:
         msg = f"TEXT_MENTION are not supported yet, these users cannot be added: {list(text_mentions.values())}"
@@ -44,28 +46,6 @@ def _parse_tagadd_command(effective_message: Message) -> TagAddArgs:
         raise CommandParsingError(msg)
 
     return TagAddArgs(group=next(iter(hashtags)).lower(), tags=[mention.lower() for mention in mentions])
-
-
-def _get_tag_groups(chat_id: int, groups: list[str] | None = None) -> list[TagGroup]:
-    stmt = select(TagGroup).where(TagGroup.chat_id == chat_id)
-    with Session() as session:
-        if groups:
-            tag_groups = session.scalars(stmt.where(TagGroup.group_name.in_(groups))).all()
-        else:
-            tag_groups = session.scalars(stmt).all()
-
-    return list(tag_groups)
-
-
-def _delete_tag_group(chat_id: int, group: str) -> DeleteResult:
-    stmt = delete(TagGroup).where(TagGroup.chat_id == chat_id, TagGroup.group_name == group)
-    with Session.begin() as session:
-        deleted_rows = session.execute(stmt).rowcount
-
-    if deleted_rows == 0:
-        return DeleteResult.NOT_FOUND
-
-    return DeleteResult.DELETED
 
 
 def _upsert_tag_group(chat_id: int, tag_group: TagAddArgs) -> UpsertResult:
@@ -96,7 +76,11 @@ async def handle_message_with_tags(update: Update, _: ContextTypes.DEFAULT_TYPE)
 
     tags = list(update.effective_message.parse_entities([MessageEntity.HASHTAG]).values())
 
-    found_groups = _get_tag_groups(update.effective_chat.id, tags)
+    with Session() as session:
+        found_groups = session.scalars(
+            select(TagGroup).where(TagGroup.chat_id == update.effective_chat.id).where(TagGroup.group_name.in_(tags)),
+        ).all()
+
     if len(found_groups) == 0:
         return
 
@@ -125,7 +109,8 @@ async def handle_message_with_tags(update: Update, _: ContextTypes.DEFAULT_TYPE)
 async def taglist_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
 
-    tag_groups = _get_tag_groups(update.effective_chat.id)
+    with Session() as session:
+        tag_groups = session.scalars(select(TagGroup).where(TagGroup.chat_id == update.effective_chat.id)).all()
 
     string_group = [f"{group.group_name}: {", ".join(name.lstrip("@") for name in group.tags)}" for group in tag_groups]
     if len(string_group) != 0:
@@ -186,19 +171,17 @@ Invalid format. Please use the following format:
         await update.effective_message.reply_text(text)
         return
 
-    texts: list[str] = []
-    for group in hashtags:
-        res = _delete_tag_group(chat_id, group)
+    with Session.begin() as session:
+        deleted_groups = session.scalars(
+            delete(TagGroup)
+            .where(TagGroup.chat_id == chat_id, TagGroup.group_name.in_(hashtags))
+            .returning(TagGroup.group_name),
+        ).all()
 
-        match res:
-            case DeleteResult.DELETED:
-                texts.append(f"Group {group} removed!")
-            case DeleteResult.NOT_FOUND:
-                texts.append(f"Group {group} not found!")
+    logger.info("User `%s` deleted tag groups %s in chat `%s`", update.effective_user.id, deleted_groups, chat_id)
 
-        logger.info("User `%s` deleted tag group `%s` in chat `%s`", update.effective_user.id, group, chat_id)
-
-    await update.effective_chat.send_message("\n".join(texts))
+    message = f"The following groups have been removed: {", ".join(deleted_groups)}"
+    await update.effective_chat.send_message(message)
 
 
 def handlers() -> list[TypedBaseHandler]:
