@@ -124,3 +124,10 @@ def handlers() -> dict[int, list[TypedBaseHandler] | tuple[TypedBaseHandler]]:
         ],
         TRACKER: [MessageHandler(filters.TEXT, count_words_message_handler)],
     }
+
+
+commands = (
+    ("stats", "Shows group stats"),
+    ("track", "Tracks a word"),
+    ("untrack", "Stops tracking a word"),
+)

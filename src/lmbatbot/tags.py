@@ -210,3 +210,10 @@ def handlers() -> list[TypedBaseHandler]:
         MessageHandler(filters.Entity(constants.MessageEntityType.HASHTAG), hashtag_message_handler),
         MessageHandler(filters.Entity(constants.MessageEntityType.MENTION), mention_message_handler),
     ]
+
+
+commands = (
+    ("taglist", "Lists available tags"),
+    ("tagadd", "Adds a tag group"),
+    ("tagdel", "Deletes a tag group"),
+)

@@ -11,15 +11,9 @@ from lmbatbot.utils import version_command_handler
 async def _set_commands(app: Application) -> None:
     await app.bot.set_my_commands(
         (
-            ("taglist", "Lists available tags"),
-            ("tagadd", "Adds a tag group"),
-            ("tagdel", "Deletes a tag group"),
-            ("stats", "Shows group stats"),
-            ("track", "Tracks a word"),
-            ("untrack", "Stops tracking a word"),
-            ("uni", "Shows student info about name / id"),
-            ("uniset", "Adds new student data to this chat's DB"),
-            ("unireset", "Deletes all records for the current chat"),
+            *university_data.commands,
+            *word_counter.commands,
+            *tags.commands,
             ("bocchi", "Bocchi"),
             ("lt", "REEEEEEEEEEEEETI"),
             ("version", "Display bot version"),

@@ -204,3 +204,10 @@ def handlers() -> list[TypedBaseHandler]:
             fallbacks=[CommandHandler("cancel", cancel_command_handler)],
         ),
     ]
+
+
+commands = (
+    ("uni", "Shows student info about name / id"),
+    ("uniset", "Adds new student data to this chat's DB"),
+    ("unireset", "Deletes all records for the current chat"),
+)
