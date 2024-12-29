@@ -5,7 +5,7 @@ from telegram.ext import Application
 
 from lmbatbot import fun, tags, university_data, word_counter
 from lmbatbot.settings import settings
-from lmbatbot.utils import version_command
+from lmbatbot.utils import version_command_handler
 
 
 async def _set_commands(app: Application) -> None:
@@ -40,6 +40,6 @@ def main() -> None:
     application.add_handlers(word_counter.handlers())
     application.add_handlers(tags.handlers())
     application.add_handlers(fun.handlers())
-    application.add_handler(version_command())
+    application.add_handler(version_command_handler())
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)

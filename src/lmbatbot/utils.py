@@ -10,7 +10,7 @@ class CommandParsingError(Exception):
     """Error during command parsing."""
 
 
-def version_command() -> CommandHandler:
+def version_command_handler() -> CommandHandler:
     async def _version_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         import importlib.metadata
 

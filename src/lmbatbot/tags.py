@@ -86,7 +86,7 @@ async def _send_private_mentions(message: Message, mentioned_usernames: set[str]
             await message.reply_html(text, do_quote=message.build_reply_arguments(target_chat_id=user_id))
 
 
-async def taglist_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def taglist_command_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
 
     with Session() as s:
@@ -106,7 +106,7 @@ Use the /tagadd to create a new group."""
     await update.effective_chat.send_message(message, parse_mode=constants.ParseMode.HTML)
 
 
-async def tagadd_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def tagadd_command_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
     assert update.effective_message
     assert update.effective_user
@@ -136,7 +136,7 @@ Please use the following format:
     await update.effective_chat.send_message(text)
 
 
-async def tagdel_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def tagdel_command_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
     assert update.effective_message
     assert update.effective_user
@@ -164,7 +164,7 @@ Invalid format. Please use the following format:
     await update.effective_chat.send_message(message)
 
 
-async def handle_message_mentions(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def mention_message_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_message
     assert update.effective_message.from_user
 
@@ -172,7 +172,7 @@ async def handle_message_mentions(update: Update, _: ContextTypes.DEFAULT_TYPE) 
     await _send_private_mentions(update.effective_message, mentions)
 
 
-async def handle_message_with_tags(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def hashtag_message_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
     assert update.effective_message
     assert update.effective_user
@@ -204,9 +204,9 @@ async def handle_message_with_tags(update: Update, _: ContextTypes.DEFAULT_TYPE)
 
 def handlers() -> list[TypedBaseHandler]:
     return [
-        CommandHandler("taglist", taglist_cmd),
-        CommandHandler("tagadd", tagadd_cmd),
-        CommandHandler("tagdel", tagdel_cmd),
-        MessageHandler(filters.Entity(constants.MessageEntityType.HASHTAG), handle_message_with_tags),
-        MessageHandler(filters.Entity(constants.MessageEntityType.MENTION), handle_message_mentions),
+        CommandHandler("taglist", taglist_command_handler),
+        CommandHandler("tagadd", tagadd_command_handler),
+        CommandHandler("tagdel", tagdel_command_handler),
+        MessageHandler(filters.Entity(constants.MessageEntityType.HASHTAG), hashtag_message_handler),
+        MessageHandler(filters.Entity(constants.MessageEntityType.MENTION), mention_message_handler),
     ]

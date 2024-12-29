@@ -72,7 +72,7 @@ def _handle_name(chat_id: int, name: str) -> str:
     )
 
 
-async def uni_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def uni_command_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
     assert update.effective_message
 
@@ -89,7 +89,7 @@ async def uni_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.effective_chat.send_message(text, protect_content=True, parse_mode=constants.ParseMode.HTML)
 
 
-async def unireset_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def unireset_command_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
     assert update.effective_user
 
@@ -100,7 +100,7 @@ async def unireset_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     await update.effective_chat.send_message(f"{deleted} records have been deleted!")
 
 
-async def uniset_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
+async def uniset_command_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
     assert update.effective_chat
 
     await update.effective_chat.send_message(
@@ -115,7 +115,7 @@ If you want to cancel the operation, send /cancel""",
     return FILE_UPLOAD_STATE
 
 
-async def file_upload(update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
+async def file_upload_message_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
     assert update.effective_chat
     assert update.effective_message
     assert update.effective_message.document
@@ -167,14 +167,14 @@ async def file_upload(update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 
-async def cancel_upload(update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
+async def cancel_command_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
     assert update.effective_chat
 
     await update.effective_chat.send_message("Operation cancelled!", disable_notification=True)
     return ConversationHandler.END
 
 
-async def file_upload_error(update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
+async def file_upload_error_message_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
     assert update.effective_chat
 
     await update.effective_chat.send_message(
@@ -188,19 +188,19 @@ if you want to cancel the operation, send /cancel""",
 
 def handlers() -> list[TypedBaseHandler]:
     return [
-        CommandHandler("uni", uni_cmd),
-        CommandHandler("unireset", unireset_cmd),
+        CommandHandler("uni", uni_command_handler),
+        CommandHandler("unireset", unireset_command_handler),
         ConversationHandler(
-            entry_points=[CommandHandler("uniset", uniset_cmd)],
+            entry_points=[CommandHandler("uniset", uniset_command_handler)],
             states={
                 FILE_UPLOAD_STATE: [
-                    MessageHandler(filters.Document.TEXT, file_upload),
+                    MessageHandler(filters.Document.TEXT, file_upload_message_handler),
                     MessageHandler(
                         ~filters.Document.TEXT & ~filters.Regex("^/cancel"),
-                        file_upload_error,
+                        file_upload_error_message_handler,
                     ),
                 ],
             },
-            fallbacks=[CommandHandler("cancel", cancel_upload)],
+            fallbacks=[CommandHandler("cancel", cancel_command_handler)],
         ),
     ]

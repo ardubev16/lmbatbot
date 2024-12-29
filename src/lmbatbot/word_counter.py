@@ -39,7 +39,7 @@ def _delete_tracked_word(chat_id: int, word: str) -> DeleteResult:
     return DeleteResult.DELETED
 
 
-async def count_words_in_message(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def count_words_message_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
     assert update.effective_message
     assert update.effective_message.text
@@ -52,7 +52,7 @@ async def count_words_in_message(update: Update, _: ContextTypes.DEFAULT_TYPE) -
             word_counter.count += cnt
 
 
-async def stats_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def stats_command_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
 
     with Session() as s:
@@ -73,7 +73,7 @@ Use the /track to start tracking a new word."""
     await update.effective_chat.send_message(text, parse_mode=constants.ParseMode.HTML)
 
 
-async def track_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def track_command_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
     assert update.effective_message
 
@@ -93,7 +93,7 @@ async def track_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.effective_chat.send_message(text, disable_notification=True, parse_mode=constants.ParseMode.HTML)
 
 
-async def untrack_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def untrack_command_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
     assert update.effective_message
 
@@ -118,14 +118,9 @@ def handlers() -> dict[int, list[TypedBaseHandler] | tuple[TypedBaseHandler]]:
 
     return {
         DEFAULT: [
-            CommandHandler("stats", stats_cmd),
-            CommandHandler("track", track_cmd),
-            CommandHandler("untrack", untrack_cmd),
+            CommandHandler("stats", stats_command_handler),
+            CommandHandler("track", track_command_handler),
+            CommandHandler("untrack", untrack_command_handler),
         ],
-        TRACKER: [
-            MessageHandler(
-                filters.TEXT,
-                count_words_in_message,
-            ),
-        ],
+        TRACKER: [MessageHandler(filters.TEXT, count_words_message_handler)],
     }
