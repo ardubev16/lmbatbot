@@ -45,7 +45,7 @@ def _parse_tagadd_command(effective_message: Message) -> TagAddArgs:
         msg = "No mentions found"
         raise CommandParsingError(msg)
 
-    deuped_mentions = {mention.lower() for mention in mentions}
+    deuped_mentions = set(map(str.lower, mentions))
     return TagAddArgs(group=next(iter(hashtags)).lower(), tags=list(deuped_mentions))
 
 
@@ -70,41 +70,20 @@ def _upsert_tag_group(chat_id: int, tag_group: TagAddArgs) -> UpsertResult:
     return UpsertResult.UPDATED if row_exists else UpsertResult.INSERTED
 
 
-async def handle_message_with_tags(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    assert update.effective_chat
-    assert update.effective_message
-    assert update.effective_user
+async def _send_private_mentions(message: Message, mentioned_usernames: set[str]) -> None:
+    assert message.from_user
 
-    tags = list(update.effective_message.parse_entities([MessageEntity.HASHTAG]).values())
-
-    with Session() as session:
-        found_groups = session.scalars(
-            select(TagGroup).where(TagGroup.chat_id == update.effective_chat.id).where(TagGroup.group_name.in_(tags)),
-        ).all()
-
-    if len(found_groups) == 0:
-        return
-
-    tag_set: set[str] = set()
-    for group in found_groups:
-        tag_set = tag_set.union(group.tags)
-
-    if username := update.effective_user.username:
+    text = f"You got mentioned in <b>{message.chat.effective_name}</b> by {message.from_user.name}."
+    if username := message.from_user.username:
         with contextlib.suppress(KeyError):
-            tag_set.remove(f"@{username.lower()}")
-
-    await update.effective_message.reply_html(" ".join(tag_set))
+            mentioned_usernames.remove(f"@{username.lower()}")
 
     # TODO: temporary implementation, create a table ad-hoc
     # https://github.com/ardubev16/lmbatbot/issues/12
-    message = f"You got mentioned in <b>{update.effective_chat.effective_name}</b> by {update.effective_user.name}."
     for username, user_id in settings.GLOBAL_PVT_NOTIFICATION_USERS:
-        if username.lower() in tag_set:
+        if username.lower() in mentioned_usernames:
             logger.info("Sending private message to `%s`", user_id)
-            await update.effective_message.reply_html(
-                message,
-                do_quote=update.effective_message.build_reply_arguments(target_chat_id=user_id),
-            )
+            await message.reply_html(text, do_quote=message.build_reply_arguments(target_chat_id=user_id))
 
 
 async def taglist_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -164,7 +143,7 @@ async def tagdel_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
     chat_id = update.effective_chat.id
 
-    hashtags = update.effective_message.parse_entities([MessageEntity.HASHTAG]).values()
+    hashtags = list(map(str.lower, update.effective_message.parse_entities([MessageEntity.HASHTAG]).values()))
     if len(hashtags) == 0:
         text = """\
 Invalid format. Please use the following format:
@@ -185,13 +164,49 @@ Invalid format. Please use the following format:
     await update.effective_chat.send_message(message)
 
 
-def handlers() -> list[TypedBaseHandler]:
-    taglist_handler = CommandHandler("taglist", taglist_cmd)
-    tagadd_handler = CommandHandler("tagadd", tagadd_cmd)
-    tagdel_handler = CommandHandler("tagdel", tagdel_cmd)
-    tag_handler = MessageHandler(
-        filters.Entity(constants.MessageEntityType.HASHTAG),
-        handle_message_with_tags,
-    )
+async def handle_message_mentions(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.effective_message
+    assert update.effective_message.from_user
 
-    return [taglist_handler, tagadd_handler, tagdel_handler, tag_handler]
+    mentions = set(map(str.lower, update.effective_message.parse_entities([MessageEntity.MENTION]).values()))
+    await _send_private_mentions(update.effective_message, mentions)
+
+
+async def handle_message_with_tags(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.effective_chat
+    assert update.effective_message
+    assert update.effective_user
+
+    tags = list(map(str.lower, update.effective_message.parse_entities([MessageEntity.HASHTAG]).values()))
+    mentions = list(map(str.lower, update.effective_message.parse_entities([MessageEntity.MENTION]).values()))
+
+    with Session() as session:
+        found_groups = session.scalars(
+            select(TagGroup).where(TagGroup.chat_id == update.effective_chat.id).where(TagGroup.group_name.in_(tags)),
+        ).all()
+
+    if len(found_groups) == 0:
+        return
+
+    tag_set: set[str] = set()
+    for group in found_groups:
+        tag_set = tag_set.union(group.tags)
+
+    if username := update.effective_user.username:
+        with contextlib.suppress(KeyError):
+            tag_set.remove(f"@{username.lower()}")
+
+    if tag_set:
+        await update.effective_message.reply_html(" ".join(tag_set))
+
+    await _send_private_mentions(update.effective_message, tag_set.union(mentions))
+
+
+def handlers() -> list[TypedBaseHandler]:
+    return [
+        CommandHandler("taglist", taglist_cmd),
+        CommandHandler("tagadd", tagadd_cmd),
+        CommandHandler("tagdel", tagdel_cmd),
+        MessageHandler(filters.Entity(constants.MessageEntityType.HASHTAG), handle_message_with_tags),
+        MessageHandler(filters.Entity(constants.MessageEntityType.MENTION), handle_message_mentions),
+    ]
