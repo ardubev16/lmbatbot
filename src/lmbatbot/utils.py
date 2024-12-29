@@ -20,9 +20,14 @@ def version_command() -> CommandHandler:
         import importlib.metadata
 
         version = importlib.metadata.version("lmbatbot")
+        release_notes_url = f"https://github.com/ardubev16/lmbatbot/releases/tag/v{version}"
+        message = f"""\
+Bot version: <code>{version}</code>
+
+To see what's changed checkout the <a href='{release_notes_url}'>Release Notes</a>"""
         assert update.effective_chat
         await update.effective_chat.send_message(
-            f"Bot version: <code>{version}</code>",
+            message,
             parse_mode=constants.ParseMode.HTML,
             disable_notification=True,
         )
