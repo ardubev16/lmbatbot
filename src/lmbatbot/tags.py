@@ -70,43 +70,6 @@ def _upsert_tag_group(chat_id: int, tag_group: TagAddArgs) -> UpsertResult:
     return UpsertResult.UPDATED if row_exists else UpsertResult.INSERTED
 
 
-async def handle_message_with_tags(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    assert update.effective_chat
-    assert update.effective_message
-    assert update.effective_user
-
-    tags = list(update.effective_message.parse_entities([MessageEntity.HASHTAG]).values())
-
-    with Session() as session:
-        found_groups = session.scalars(
-            select(TagGroup).where(TagGroup.chat_id == update.effective_chat.id).where(TagGroup.group_name.in_(tags)),
-        ).all()
-
-    if len(found_groups) == 0:
-        return
-
-    tag_set: set[str] = set()
-    for group in found_groups:
-        tag_set = tag_set.union(group.tags)
-
-    if username := update.effective_user.username:
-        with contextlib.suppress(KeyError):
-            tag_set.remove(f"@{username.lower()}")
-
-    await update.effective_message.reply_html(" ".join(tag_set))
-
-    # TODO: temporary implementation, create a table ad-hoc
-    # https://github.com/ardubev16/lmbatbot/issues/12
-    message = f"You got mentioned in <b>{update.effective_chat.effective_name}</b> by {update.effective_user.name}."
-    for username, user_id in settings.GLOBAL_PVT_NOTIFICATION_USERS:
-        if username.lower() in tag_set:
-            logger.info("Sending private message to `%s`", user_id)
-            await update.effective_message.reply_html(
-                message,
-                do_quote=update.effective_message.build_reply_arguments(target_chat_id=user_id),
-            )
-
-
 async def taglist_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
 
@@ -183,6 +146,43 @@ Invalid format. Please use the following format:
 
     message = f"The following groups have been removed: {", ".join(deleted_groups)}"
     await update.effective_chat.send_message(message)
+
+
+async def handle_message_with_tags(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.effective_chat
+    assert update.effective_message
+    assert update.effective_user
+
+    tags = list(update.effective_message.parse_entities([MessageEntity.HASHTAG]).values())
+
+    with Session() as session:
+        found_groups = session.scalars(
+            select(TagGroup).where(TagGroup.chat_id == update.effective_chat.id).where(TagGroup.group_name.in_(tags)),
+        ).all()
+
+    if len(found_groups) == 0:
+        return
+
+    tag_set: set[str] = set()
+    for group in found_groups:
+        tag_set = tag_set.union(group.tags)
+
+    if username := update.effective_user.username:
+        with contextlib.suppress(KeyError):
+            tag_set.remove(f"@{username.lower()}")
+
+    await update.effective_message.reply_html(" ".join(tag_set))
+
+    # TODO: temporary implementation, create a table ad-hoc
+    # https://github.com/ardubev16/lmbatbot/issues/12
+    message = f"You got mentioned in <b>{update.effective_chat.effective_name}</b> by {update.effective_user.name}."
+    for username, user_id in settings.GLOBAL_PVT_NOTIFICATION_USERS:
+        if username.lower() in tag_set:
+            logger.info("Sending private message to `%s`", user_id)
+            await update.effective_message.reply_html(
+                message,
+                do_quote=update.effective_message.build_reply_arguments(target_chat_id=user_id),
+            )
 
 
 def handlers() -> list[TypedBaseHandler]:
