@@ -11,7 +11,7 @@ dependencies = [
     "alembic==1.14.0",
     "pydantic==2.10.4",
     "pydantic-settings==2.7.0",
-    "python-telegram-bot==21.9",
+    "python-telegram-bot==22.1",
     "requests==2.32.3",
     "sqlalchemy==2.0.36",
 ]
