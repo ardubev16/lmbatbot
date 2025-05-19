@@ -92,7 +92,7 @@ async def taglist_command_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) 
     with Session() as s:
         tag_groups = s.scalars(select(TagGroup).where(TagGroup.chat_id == update.effective_chat.id)).all()
 
-    string_group = [f"{group.group_name}: {", ".join(name.lstrip("@") for name in group.tags)}" for group in tag_groups]
+    string_group = [f"{group.group_name}: {', '.join(name.lstrip('@') for name in group.tags)}" for group in tag_groups]
     if len(string_group) != 0:
         message = f"""\
 <b>Groups:</b>
@@ -160,7 +160,7 @@ Invalid format. Please use the following format:
 
     logger.info("User `%s` deleted tag groups %s in chat `%s`", update.effective_user.id, deleted_groups, chat_id)
 
-    message = f"The following groups have been removed: {", ".join(deleted_groups)}"
+    message = f"The following groups have been removed: {', '.join(deleted_groups)}"
     await update.effective_chat.send_message(message)
 
 
