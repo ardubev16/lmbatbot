@@ -22,10 +22,7 @@ async def _set_commands(app: Application) -> None:
 
 
 def main() -> None:
-    logging.basicConfig(
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        level=logging.INFO,
-    )
+    logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
     application = Application.builder().token(settings.TELEGRAM_TOKEN).post_init(_set_commands).build()
