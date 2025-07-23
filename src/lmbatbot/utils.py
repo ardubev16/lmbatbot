@@ -1,3 +1,6 @@
+import importlib.metadata
+from typing import Any
+
 from telegram import Update, constants
 from telegram.ext import BaseHandler, CommandHandler, ContextTypes
 
@@ -10,10 +13,11 @@ class CommandParsingError(Exception):
     """Error during command parsing."""
 
 
-def version_command_handler() -> CommandHandler:
-    async def _version_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-        import importlib.metadata
+type TypedBaseHandler = BaseHandler[Any, ContextTypes.DEFAULT_TYPE, Any]
 
+
+def version_command_handler() -> TypedBaseHandler:
+    async def _version_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         version = importlib.metadata.version("lmbatbot")
         release_notes_url = f"https://github.com/ardubev16/lmbatbot/releases/tag/v{version}"
         message = f"""\
@@ -28,6 +32,3 @@ To see what's changed checkout the <a href='{release_notes_url}'>Release Notes</
         )
 
     return CommandHandler("version", _version_cmd)
-
-
-type TypedBaseHandler = BaseHandler[Update, ContextTypes.DEFAULT_TYPE]

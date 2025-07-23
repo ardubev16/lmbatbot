@@ -1,5 +1,6 @@
 import logging
 import re
+from collections.abc import Sequence
 
 from sqlalchemy import delete, select
 from telegram import Update, constants
@@ -113,7 +114,7 @@ async def untrack_command_handler(update: Update, context: ContextTypes.DEFAULT_
     await update.effective_chat.send_message(text, disable_notification=True, parse_mode=constants.ParseMode.HTML)
 
 
-def handlers() -> dict[int, list[TypedBaseHandler] | tuple[TypedBaseHandler]]:
+def handlers() -> dict[int, Sequence[TypedBaseHandler] | tuple[TypedBaseHandler]]:
     DEFAULT, TRACKER = range(2)  # noqa: N806
 
     return {
