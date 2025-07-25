@@ -8,15 +8,15 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "alembic==1.15.2",
-    "pydantic==2.11.4",
-    "pydantic-settings==2.9.1",
-    "python-telegram-bot==22.1",
+    "alembic==1.16.4",
+    "pydantic==2.11.7",
+    "pydantic-settings==2.10.1",
+    "python-telegram-bot==22.3",
     "sqlalchemy==2.0.41",
 ]
 
 [dependency-groups]
-dev = ["ruff==0.11.10", "vulture==2.14"]
+dev = ["ruff==0.12.5", "vulture==2.14"]
 
 [project.scripts]
 lmbatbot = "lmbatbot:main"
