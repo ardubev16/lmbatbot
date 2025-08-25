@@ -12,11 +12,11 @@ dependencies = [
     "pydantic==2.11.7",
     "pydantic-settings==2.10.1",
     "python-telegram-bot==22.3",
-    "sqlalchemy==2.0.42",
+    "sqlalchemy==2.0.43",
 ]
 
 [dependency-groups]
-dev = ["ruff==0.12.8", "vulture==2.14"]
+dev = ["ruff==0.12.10", "vulture==2.14"]
 
 [project.scripts]
 lmbatbot = "lmbatbot:main"
