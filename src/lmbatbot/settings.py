@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     TELEGRAM_TOKEN: str = Field(default=...)
     DB_URL: str = Field(default="sqlite://")
     GLOBAL_PVT_NOTIFICATION_USERS: list[tuple[str, int]] = Field(default=[])
+    EVENT_CHAT_ID: int | None = Field(default=None)
 
 
 settings = Settings()

@@ -1,0 +1,20 @@
+[
+    {
+        "day": 1,
+        "month": 1,
+        "message": "🎉 Happy New Year! 🎉",
+        "time": "00:00:30"
+    },
+    {
+        "day": 31,
+        "month": 10,
+        "message": "🎃 Happy Halloween! 🎃",
+        "time": "18:00"
+    },
+    {
+        "day": 25,
+        "month": 12,
+        "message": "🎄 Merry Christmas! 🎄",
+        "time": "09:00"
+    }
+]
