@@ -3,7 +3,7 @@ import logging
 from telegram import Update
 from telegram.ext import Application
 
-from lmbatbot import fun, tags, university_data, word_counter
+from lmbatbot import events, fun, tags, university_data, word_counter
 from lmbatbot.settings import settings
 from lmbatbot.utils import version_command_handler
 
@@ -26,6 +26,10 @@ def main() -> None:
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
     application = Application.builder().token(settings.TELEGRAM_TOKEN).post_init(_set_commands).build()
+
+    if application.job_queue:
+        application.job_queue.scheduler.configure(job_defaults={"misfire_grace_time": 30})
+        events.schedule_event_check(application.job_queue)
 
     application.add_handlers(university_data.handlers())
     application.add_handlers(word_counter.handlers())
