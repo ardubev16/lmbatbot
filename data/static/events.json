@@ -1,20 +1,100 @@
 [
     {
+        "name": "Capodanno",
         "day": 1,
         "month": 1,
         "message": "🎉 Happy New Year! 🎉",
         "time": "00:00:30"
     },
     {
+        "name": "Epifania del Signore",
+        "day": 6,
+        "month": 1,
+        "message": "🧹 Buona Epifania! 🧹",
+        "time": "09:00"
+    },
+    {
+        "name": "Pasqua di Resurrezione",
+        "day": 20,
+        "month": 4,
+        "message": "🕊️ Buona Pasqua! 🕊️",
+        "time": "09:00"
+    },
+    {
+        "name": "Lunedì dell'Angelo",
+        "day": 21,
+        "month": 4,
+        "message": "🧺 Buona Pasquetta! 🧺",
+        "time": "09:00"
+    },
+    {
+        "name": "Festa della Liberazione",
+        "day": 25,
+        "month": 4,
+        "message": "Buona Festa della Liberazione!",
+        "time": "09:00"
+    },
+    {
+        "name": "Festa dei Lavoratori",
+        "day": 1,
+        "month": 5,
+        "message": "💪 Happy Labour Day! 💪",
+        "time": "09:00"
+    },
+    {
+        "name": "Festa della Repubblica",
+        "day": 2,
+        "month": 6,
+        "message": "Buona Festa della Repubblica!",
+        "time": "09:00"
+    },
+    {
+        "name": "Assunzione della Vergine",
+        "day": 15,
+        "month": 8,
+        "message": "☀️ Buon Ferragosto! 🍉",
+        "time": "12:00"
+    },
+    {
+        "name": "Halloween",
         "day": 31,
         "month": 10,
         "message": "🎃 Happy Halloween! 🎃",
         "time": "18:00"
     },
     {
+        "name": "Tutti i Santi",
+        "day": 1,
+        "month": 11,
+        "message": "🕯️ Buona festa di Ognissanti. 🕯️",
+        "time": "09:00"
+    },
+    {
+        "name": "Immacolata Concezione",
+        "day": 8,
+        "month": 12,
+        "message": "✨ Buona Immacolata. ✨",
+        "time": "09:00"
+    },
+    {
+        "name": "Natale",
         "day": 25,
         "month": 12,
         "message": "🎄 Merry Christmas! 🎄",
         "time": "09:00"
+    },
+    {
+        "name": "Santo Stefano",
+        "day": 26,
+        "month": 12,
+        "message": "🎁 Buon Santo Stefano! 🎁",
+        "time": "09:00"
+    },
+    {
+        "name": "Personal",
+        "day": 25,
+        "month": 12,
+        "message": "message",
+        "time": "15:36"
     }
 ]

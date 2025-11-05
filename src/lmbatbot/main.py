@@ -28,6 +28,7 @@ def main() -> None:
     application = Application.builder().token(settings.TELEGRAM_TOKEN).post_init(_set_commands).build()
 
     if application.job_queue:
+        application.job_queue.scheduler.configure(job_defaults={"misfire_grace_time": 30})
         events.schedule_event_check(application.job_queue)
 
     application.add_handlers(university_data.handlers())
