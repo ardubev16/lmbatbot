@@ -13,13 +13,12 @@ logger = logging.getLogger(__name__)
 
 it_holidays = holidays.IT()
 
-def load_events() -> (
-    tuple[
-        dict[tuple[int, int], list[tuple[str, datetime.time]]],
-        dict[str, list[tuple[str, datetime.time]]],
-    ]
-):
-    """Loads events from the JSON file."""
+
+def load_events() -> tuple[
+    dict[tuple[int, int], list[tuple[str, datetime.time]]],
+    dict[str, list[tuple[str, datetime.time]]],
+]:
+    """Load events from the JSON file."""
     events_file = Path("data/static/events.json")
     if not events_file.exists():
         logger.warning("Events file not found: %s", events_file)
@@ -43,9 +42,8 @@ def load_events() -> (
             if name := event.get("name"):
                 name_events.setdefault(name, []).append((message, time))
 
-            if day := event.get("day"):
-                if month := event.get("month"):
-                    date_events.setdefault((day, month), []).append((message, time))
+            if (day := event.get("day")) and (month := event.get("month")):
+                date_events.setdefault((day, month), []).append((message, time))
 
         except (KeyError, ValueError) as e:
             logger.error(
@@ -61,14 +59,14 @@ DATE_EVENTS, NAME_EVENTS = load_events()
 
 
 async def send_event_message(context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Sends the event message."""
+    """Send the event message."""
     if not (isinstance(context.job.data, dict) and (message := context.job.data.get("message"))):
         return
     await context.bot.send_message(chat_id=settings.EVENT_CHAT_ID, text=message)
 
 
 async def event_check_job(context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Checks if today there is an event and schedules a message if it is."""
+    """Check if today there is an event and schedules a message if it is."""
     if not settings.EVENT_CHAT_ID:
         logger.info("EVENT_CHAT_ID not set, skipping event check.")
         return
@@ -78,10 +76,9 @@ async def event_check_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     events_to_schedule = []
 
     holiday_name = it_holidays.get(today)
-    if holiday_name:
-        if events_by_name := NAME_EVENTS.get(holiday_name):
-            events_to_schedule.extend(events_by_name)
-            logger.info("Found %d holiday event(s) for %s", len(events_by_name), holiday_name)
+    if holiday_name and (events_by_name := NAME_EVENTS.get(holiday_name)):
+        events_to_schedule.extend(events_by_name)
+        logger.info("Found %d holiday event(s) for %s", len(events_by_name), holiday_name)
 
     today_tuple = (today.day, today.month)
     if events_by_date := DATE_EVENTS.get(today_tuple):
@@ -114,7 +111,6 @@ async def event_check_job(context: ContextTypes.DEFAULT_TYPE) -> None:
 
 def schedule_event_check(job_queue: JobQueue) -> None:
     """Schedules the daily event check."""
-
     job_queue.run_once(event_check_job, when=0, name="event_check_job_immediate")
     logger.info("Scheduled immediate event check job.")
 
