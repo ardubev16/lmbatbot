@@ -13,12 +13,11 @@ logger = logging.getLogger(__name__)
 
 it_holidays = holidays.IT()
 
-def load_events() -> (
-    tuple[
-        dict[tuple[int, int], list[tuple[str, datetime.time]]],
-        dict[str, list[tuple[str, datetime.time]]],
-    ]
-):
+
+def load_events() -> tuple[
+    dict[tuple[int, int], list[tuple[str, datetime.time]]],
+    dict[str, list[tuple[str, datetime.time]]],
+]:
     """Loads events from the JSON file."""
     events_file = Path("data/static/events.json")
     if not events_file.exists():
@@ -114,7 +113,6 @@ async def event_check_job(context: ContextTypes.DEFAULT_TYPE) -> None:
 
 def schedule_event_check(job_queue: JobQueue) -> None:
     """Schedules the daily event check."""
-
     job_queue.run_once(event_check_job, when=0, name="event_check_job_immediate")
     logger.info("Scheduled immediate event check job.")
 

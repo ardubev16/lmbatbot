@@ -3,7 +3,7 @@ import logging
 from telegram import Update
 from telegram.ext import Application
 
-from lmbatbot import fun, events, tags, university_data, word_counter
+from lmbatbot import events, fun, tags, university_data, word_counter
 from lmbatbot.settings import settings
 from lmbatbot.utils import version_command_handler
 
