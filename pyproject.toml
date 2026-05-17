@@ -63,3 +63,24 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "./src/lmbatbot/migrations/versions/*" = ["D400", "D415"]
 "tests/**" = ["ANN", "PLR0913"]
+
+[tool.alembic]
+script_location = "%(here)s/src/lmbatbot/migrations"
+
+# See https://alembic.sqlalchemy.org/en/latest/tutorial.html#editing-the-ini-file for all available tokens
+file_template = "%%(year)d%%(month).2d%%(day).2d_%%(hour).2d%%(minute).2d_%%(rev)s"
+
+# additional paths to be prepended to sys.path. defaults to the current working directory.
+prepend_sys_path = ["."]
+
+[[tool.alembic.post_write_hooks]]
+name = "ruff-format"
+type = "exec"
+executable = "%(here)s/.venv/bin/ruff"
+options = "format REVISION_SCRIPT_FILENAME"
+
+[[tool.alembic.post_write_hooks]]
+name = "ruff-lint"
+type = "exec"
+executable = "%(here)s/.venv/bin/ruff"
+options = "check --fix REVISION_SCRIPT_FILENAME"
