@@ -1,5 +1,5 @@
 """
-First commit
+First commit.
 
 Revision ID: f0f76bb9b563
 Revises:

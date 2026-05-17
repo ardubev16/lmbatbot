@@ -1,6 +1,6 @@
 [project]
 name = "lmbatbot"
-version = "0.1.5"
+dynamic = ["version"]
 description = "A simple utility Bot with some fun commands"
 readme = "README.md"
 authors = [
@@ -31,8 +31,14 @@ asyncio_mode = "auto"
 lmbatbot = "lmbatbot:main"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+version_scheme = "no-guess-dev"
 
 [tool.pyright]
 pythonVersion = "3.12"
@@ -65,7 +71,7 @@ ignore = [
 "tests/**" = ["ANN", "PLR0913"]
 
 [tool.alembic]
-script_location = "%(here)s/src/lmbatbot/migrations"
+script_location = "%(here)s/migrations"
 
 # See https://alembic.sqlalchemy.org/en/latest/tutorial.html#editing-the-ini-file for all available tokens
 file_template = "%%(year)d%%(month).2d%%(day).2d_%%(hour).2d%%(minute).2d_%%(rev)s"
