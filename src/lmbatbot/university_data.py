@@ -94,10 +94,14 @@ async def unireset_command_handler(update: Update, _: ContextTypes.DEFAULT_TYPE)
     assert update.effective_user
 
     with Session.begin() as s:
-        deleted = s.execute(delete(StudentInfo).where(StudentInfo.chat_id == update.effective_chat.id)).rowcount
+        deleted_ids = s.scalars(
+            delete(StudentInfo)
+            .where(StudentInfo.chat_id == update.effective_chat.id)
+            .returning(StudentInfo.student_id),
+        ).all()
 
     logger.info("User `%s` deleted student data for chat `%s`", update.effective_user.id, update.effective_chat.id)
-    await update.effective_chat.send_message(f"{deleted} records have been deleted!")
+    await update.effective_chat.send_message(f"{len(deleted_ids)} records have been deleted!")
 
 
 async def uniset_command_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) -> int:
