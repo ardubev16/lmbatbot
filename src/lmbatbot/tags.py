@@ -180,7 +180,7 @@ def _collect_tags_for_groups(chat_id: int, hashtags: list[str]) -> set[str]:
 
     tag_set: set[str] = set()
     for group in found_groups:
-        tag_set = tag_set.union(group.tags)
+        tag_set.update(group.tags)
     return tag_set
 
 
