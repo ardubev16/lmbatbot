@@ -1,5 +1,5 @@
 """
-Remove emoji from TagGroup
+Remove emoji from TagGroup.
 
 Revision ID: f105b088a0a3
 Revises: f0f76bb9b563

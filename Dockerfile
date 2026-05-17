@@ -2,33 +2,50 @@
 
 # Build app dependencies
 FROM python:3.12.8-slim-bookworm@sha256:2199a62885a12290dc9c5be3ca0681d367576ab7bf037da120e564723292a2f0 AS builder
-ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
-COPY --from=ghcr.io/astral-sh/uv:0.11.14@sha256:1025398289b62de8269e70c45b91ffa37c373f38118d7da036fb8bb8efc85d97 /uv /bin/
 WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    # Needed by hatch-vcs
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
+COPY --from=ghcr.io/astral-sh/uv:0.10.7@sha256:edd1fd89f3e5b005814cc8f777610445d7b7e3ed05361f9ddfae67bebfe8456a /uv /bin/
+
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=.python-version,target=.python-version \
-    uv sync --locked --no-dev --no-install-project
+    SETUPTOOLS_SCM_PRETEND_VERSION_FOR_LMBATBOT=0 \
+    uv sync --locked --no-dev --no-install-project --no-editable
 
 # Build app
-COPY pyproject.toml uv.lock README.md ./
-COPY src ./src
+COPY . .
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev --no-editable
+    --mount=type=bind,source=.git,target=.git \
+    # NOTE: reinstall-package is needed to calculate the correct version
+    uv sync --locked --no-dev --no-editable --reinstall-package=lmbatbot
 
 
 # Copy app to runtime stage
 FROM python:3.12.8-slim-bookworm@sha256:2199a62885a12290dc9c5be3ca0681d367576ab7bf037da120e564723292a2f0
 WORKDIR /app
 
-COPY --from=builder /app /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    dumb-init=1.2.5-2 \
+    && rm -rf /var/lib/apt/lists/*
 
-# post_build instructions
-COPY ./data ./data
-COPY alembic.ini entrypoint.sh ./
+COPY --from=builder /app/.venv /app/.venv
+
+# Needed by Alembic
+COPY --from=builder /app/pyproject.toml /app/alembic.ini /app/
+COPY --from=builder /app/migrations /app/migrations
+COPY --from=builder /app/data /app/data
 
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
 
-CMD ["/app/entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["/bin/sh", "-c", "alembic upgrade head && lmbatbot"]
