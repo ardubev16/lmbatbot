@@ -30,14 +30,13 @@ def _insert_word_to_track(chat_id: int, word: str) -> UpsertResult:
 
 def _delete_tracked_word(chat_id: int, word: str) -> DeleteResult:
     with Session.begin() as s:
-        deleted_rows = s.execute(
-            delete(WordCounter).where(WordCounter.chat_id == chat_id, WordCounter.word == word),
-        ).rowcount
+        deleted = s.scalars(
+            delete(WordCounter)
+            .where(WordCounter.chat_id == chat_id, WordCounter.word == word)
+            .returning(WordCounter.word),
+        ).first()
 
-    if deleted_rows == 0:
-        return DeleteResult.NOT_FOUND
-
-    return DeleteResult.DELETED
+    return DeleteResult.DELETED if deleted else DeleteResult.NOT_FOUND
 
 
 async def count_words_message_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:

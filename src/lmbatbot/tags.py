@@ -172,6 +172,18 @@ async def mention_message_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) 
     await _send_private_mentions(update.effective_message, mentions)
 
 
+def _collect_tags_for_groups(chat_id: int, hashtags: list[str]) -> set[str]:
+    with Session() as s:
+        found_groups = s.scalars(
+            select(TagGroup).where(TagGroup.chat_id == chat_id).where(TagGroup.group_name.in_(hashtags)),
+        ).all()
+
+    tag_set: set[str] = set()
+    for group in found_groups:
+        tag_set.update(group.tags)
+    return tag_set
+
+
 async def hashtag_message_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.effective_chat
     assert update.effective_message
@@ -180,17 +192,10 @@ async def hashtag_message_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) 
     tags = list(map(str.lower, update.effective_message.parse_entities([MessageEntity.HASHTAG]).values()))
     mentions = list(map(str.lower, update.effective_message.parse_entities([MessageEntity.MENTION]).values()))
 
-    with Session() as s:
-        found_groups = s.scalars(
-            select(TagGroup).where(TagGroup.chat_id == update.effective_chat.id).where(TagGroup.group_name.in_(tags)),
-        ).all()
+    tag_set = _collect_tags_for_groups(update.effective_chat.id, tags)
 
-    if len(found_groups) == 0:
+    if not tag_set:
         return
-
-    tag_set: set[str] = set()
-    for group in found_groups:
-        tag_set = tag_set.union(group.tags)
 
     if username := update.effective_user.username:
         with contextlib.suppress(KeyError):
